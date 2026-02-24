@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+const BundleModal = dynamic(() => import("./BundleModal"), { ssr: false });
 import * as Select from "@radix-ui/react-select";
 import { ChevronDown, Eye } from "lucide-react";
 
@@ -417,11 +419,17 @@ const productTypes = [
   { label: "Complete Bundle", price: null },
 ];
 
+type Product = typeof allProducts[number];
+
 export default function ShopMain() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedProductType, setSelectedProductType] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("Best Selling");
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalProduct, setModalProduct] = useState<Product | null>(null);
 
   // Filter logic
   const filteredProducts = allProducts.filter((p) => {
@@ -663,7 +671,13 @@ export default function ShopMain() {
                     </div>
 
                     {/* CTA Button */}
-                    <button className="w-full bg-green-800 hover:bg-green-900 text-white font-semibold py-2 rounded-lg mt-auto flex items-center justify-center gap-2 transition text-sm">
+                    <button
+                      className="cursor-pointer w-full bg-green-800 hover:bg-green-900 text-white font-semibold py-2 rounded-lg mt-auto flex items-center justify-center gap-2 transition text-sm"
+                      onClick={() => {
+                        setModalProduct(p);
+                        setModalOpen(true);
+                      }}
+                    >
                       <Eye size={16} />
                       See What's Included
                     </button>
@@ -672,7 +686,26 @@ export default function ShopMain() {
               ))}
             </div>
           )}
-        </div>
+        {/* Modal for bundle details (only one instance, outside the map) */}
+        {modalOpen && modalProduct && (
+          <BundleModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            bundleTitle={modalProduct.title}
+            price={modalProduct.price}
+            oldPrice={2205}
+            saveAmount={2205 - modalProduct.price}
+            items={[
+              { label: "Market Research Report", price: 397 },
+              { label: "Policy & Procedure Manual", price: 497 },
+              { label: "Pro Forma P&L Template", price: 297 },
+              { label: "Licensing Checklist", price: 397 },
+            ]}
+            bonuses={["Private Community Access", "Free Updates When Laws Change"]}
+            coursePrice={297}
+          />
+        )}
+      </div>
       </div>
     </section>
   );

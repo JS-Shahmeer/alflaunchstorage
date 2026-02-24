@@ -1,12 +1,15 @@
 "use client";
 import React, { useState } from "react";
+import { useCart } from "./cart-context";
+import dynamic from "next/dynamic";
+const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
 import Link from "next/link";
 import { Menu, X, Search, ShoppingCart } from "lucide-react";
 
 const navLinks = [
   { href: "/", label: "Home", highlight: true },
-  { href: "/", label: "Shop" },
-  { href: "/", label: "By State" },
+  { href: "/shop", label: "Shop" },
+  { href: "/states", label: "By State" },
   { href: "/", label: "Guides" },
   { href: "/", label: "Course" },
   { href: "/", label: "About" },
@@ -14,6 +17,9 @@ const navLinks = [
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const { items } = useCart();
+  const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   return (
     <header className="w-full bg-white/85 backdrop-blur-sm shadow-lg px-4 md:px-8 py-3 z-50 fixed top-0 left-0">
@@ -34,7 +40,7 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6 text-sm">
           {navLinks.map((link, idx) => (
-            <Link
+            <a
               key={idx}
               href={link.href}
               className={
@@ -44,7 +50,7 @@ const Header = () => {
               }
             >
               {link.label}
-            </Link>
+            </a>
           ))}
         </nav>
 
@@ -55,12 +61,18 @@ const Header = () => {
           </button>
 
           <div className="relative">
-            <button className="p-2 rounded hover:bg-gray-100 transition">
+            <button className="p-2 rounded hover:bg-gray-100 transition" onClick={() => setCartOpen((v) => !v)}>
               <ShoppingCart size={20} className="text-black" />
             </button>
-            <span className="absolute -top-1 -right-1 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              1
-            </span>
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartCount}
+              </span>
+            )}
+            {/* Dropdown CartModal */}
+            {cartOpen && (
+              <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
+            )}
           </div>
 
           <Link

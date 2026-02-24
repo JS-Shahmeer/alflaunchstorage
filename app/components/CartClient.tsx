@@ -1,0 +1,87 @@
+"use client";
+import React, { useState } from "react";
+import { useCart } from "./cart-context";
+import { Trash2, Lock, Zap, Shield, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+
+export default function CartClient() {
+  const { items, removeItem, clearCart } = useCart();
+  const [promo, setPromo] = useState("");
+  const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+  // For demo, promo code does nothing
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-8">
+      {/* Cart Items */}
+      <div className="flex-1">
+        {items.length === 0 ? (
+          <div className="bg-white rounded-xl shadow p-8 text-center text-gray-500">
+            Your cart is empty.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center gap-6 bg-white rounded-xl border p-6">
+                <div className="bg-green-800 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-xl">
+                  {item.state || item.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-lg mb-1 text-black">{item.name}</div>
+                  <div className="flex gap-2 mb-1">
+                    <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">Bundle</span>
+                    <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded">PDF</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-gray-400 line-through">${item.price + 1288}</span>
+                    <span className="text-2xl font-bold text-gray-900">${item.price}</span>
+                  </div>
+                </div>
+                <button className="flex flex-col items-center text-red-600 hover:text-red-800 text-sm" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="mb-1" />
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button className="text-red-600 hover:text-red-800 text-sm mt-2 ml-auto block" onClick={clearCart}>
+              Clear Cart
+            </button>
+          </div>
+        )}
+        <Link href="/shop" className="mt-8 inline-flex items-center gap-2 text-green-900 font-semibold hover:underline">
+          <span className=""> <ArrowLeft size={15} /> </span> Continue Shopping
+        </Link>
+      </div>
+      {/* Order Summary */}
+      <div className="w-full max-w-sm bg-white rounded-xl border p-6 h-fit">
+        <h2 className="font-bold text-xl mb-4 text-black">Order Summary</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-black">Promo Code</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={promo}
+              onChange={e => setPromo(e.target.value)}
+              className="text-black flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-700"
+              placeholder="Enter code"
+            />
+            <button className="border border-green-700 text-green-800 font-semibold px-4 py-1.5 rounded hover:bg-green-50 transition">Apply</button>
+          </div>
+        </div>
+        <div className="flex justify-between text-sm mb-2">
+          <span className="text-black">Subtotal</span>
+          <span className="text-black">${subtotal}</span>
+        </div>
+        <div className="flex justify-between text-lg font-bold mb-4">
+          <span className="text-black">Total</span>
+          <span className="text-black">${subtotal}</span>
+        </div>
+        <button className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-4">Proceed to Checkout</button>
+        <div className="space-y-2 text-xs text-gray-600 mt-2">
+          <div className="flex items-center gap-2"><Lock className="text-green-700 w-4 h-4" /> Secure checkout</div>
+          <div className="flex items-center gap-2"><Zap className="text-green-700 w-4 h-4" /> Instant digital delivery</div>
+          <div className="flex items-center gap-2"><Shield className="text-green-700 w-4 h-4" /> 256-bit SSL encryption</div>
+        </div>
+      </div>
+    </div>
+  );
+}

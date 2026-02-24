@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Navigation } from "lucide-react";
+import dynamic from "next/dynamic";
+const AgencyFinderModal = dynamic(() => import("./AgencyFinderModal"), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function CTA() {
   const root = useRef<HTMLDivElement>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!root.current) return;
@@ -107,7 +110,10 @@ export default function CTA() {
               and goals.
             </p>
 
-            <button className="group mt-2 bg-[#f0b23a] hover:bg-[#e3a62f] text-[#1c3b2b] font-semibold px-7 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]">
+            <button
+              className="group mt-2 cursor-pointer bg-[#f0b23a] hover:bg-[#e3a62f] text-[#1c3b2b] font-semibold px-7 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]"
+              onClick={() => setModalOpen(true)}
+            >
               <span className="flex items-center gap-2">
                 Launch Agency Finder
                 <ArrowRight
@@ -119,6 +125,8 @@ export default function CTA() {
           </div>
         </div>
       </div>
+      {/* Agency Finder Modal */}
+      <AgencyFinderModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </section>
   );
 }

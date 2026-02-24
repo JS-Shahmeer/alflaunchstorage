@@ -1,0 +1,117 @@
+import Stepper from "./Stepper";
+import { programTypeIcons } from "./lucide-icons";
+import { useRouter } from "next/navigation";
+import React from "react";
+
+export default function GetStartedComponentTwo({
+  steps,
+  currentStep,
+  selectedState,
+  stateNames,
+  programTypes,
+  selectedType,
+}: {
+  steps: string[];
+  currentStep: number;
+  selectedState: string;
+  stateNames: { [abbr: string]: string };
+  programTypes: { key: string; desc: string }[];
+  selectedType: string | null;
+}) {
+  const router = useRouter();
+  return (
+    <>
+      <Stepper currentStep={currentStep} steps={steps} />
+      <section className="flex flex-col items-center justify-center py-8 pb-32">
+        {/* State badge at top */}
+        <div className="w-full max-w-6xl flex items-center mb-4">
+          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mr-2">State:</span>
+          <span className="bg-[#417a5a] text-white font-semibold px-4 py-2 rounded-full">{stateNames[selectedState]}</span>
+        </div>
+        {/* Main content: sidebar + program types */}
+        <div className="w-full max-w-6xl flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64 bg-white rounded-xl border border-[#eaffea] p-6 flex flex-col shadow-sm">
+            <div className="mb-4">
+              <span className="block text-xs text-[#417a5a] font-semibold mb-2">STATE</span>
+              <select
+                className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white"
+                value={stateNames[selectedState]}
+                onChange={e => {
+                  const abbr = Object.keys(stateNames).find(key => stateNames[key] === e.target.value);
+                  if (abbr) router.push(`/get-started?state=${abbr}`);
+                }}
+              >
+                {Object.entries(stateNames).map(([abbr, name]) => (
+                  <option key={abbr} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span className="block text-xs text-[#417a5a] font-semibold mb-2">PROGRAM TYPE (10)</span>
+              <ul className="space-y-2">
+                {programTypes.map((type) => {
+                  const isSelected = selectedType === type.key;
+                  return (
+                    <li
+                      key={type.key}
+                      className={`flex items-center gap-2 text-[#417a5a] text-sm font-semibold rounded-lg px-2 py-1 cursor-pointer transition-all duration-150 ${isSelected ? "bg-[#eaffea] border border-[#417a5a]" : "hover:bg-[#eaffea]"}`}
+                      onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
+                      tabIndex={0}
+                    >
+                      <span>{programTypeIcons[type.key]}</span> {type.key}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </aside>
+          {/* Program types grid */}
+          <main className="flex-1">
+            <h2 className="text-2xl font-bold text-[#417a5a] mb-2 text-center">Select Program Type in {stateNames[selectedState]}</h2>
+            <p className="text-[#417a5a] mb-6 text-center">Choose the type of care business you want to license</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+              {programTypes.map((type) => {
+                const isSelected = selectedType === type.key;
+                return (
+                  <button
+                    key={type.key}
+                    className={`bg-white border rounded-xl p-6 flex flex-col items-start shadow-sm cursor-pointer transition-all duration-150 outline-none focus:ring-2 focus:ring-[#417a5a] ${isSelected ? "border-[#417a5a] ring-2 ring-[#417a5a] bg-[#eaffea]" : "border-[#eaffea] hover:border-[#417a5a]"}`}
+                    onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
+                    tabIndex={0}
+                  >
+                    <span className="font-semibold text-[#417a5a] mb-2 flex items-center gap-2">{programTypeIcons[type.key]} {type.key}</span>
+                    <span className="text-xs text-[#417a5a]">{type.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </main>
+        </div>
+      </section>
+      {/* Sticky bottom bar */}
+      <div className="w-full sticky left-0 bottom-0 flex justify-center items-end z-40 bg-white border-t border-[#eaffea] py-4 shadow-sm">
+        <div className="max-w-6xl w-full flex justify-between px-4">
+          <button
+            className="text-[#417a5a] font-semibold px-8 py-3 rounded-xl border border-[#eaffea] bg-white hover:bg-[#eaffea]"
+            onClick={() => router.push("/get-started")}
+          >
+            ← Back
+          </button>
+          <button
+            className="bg-[#e6d7b0] text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
+            onClick={() => {
+              // Only advance if a program type is selected
+              if (selectedType) {
+                router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(selectedType)}`);
+              }
+            }}
+            disabled={!selectedType}
+          >
+            Continue →
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}

@@ -1,0 +1,198 @@
+import Stepper from "./Stepper";
+import { programTypeIcons } from "./lucide-icons";
+import { FileText, Award, Users } from "lucide-react";
+import BundleModal from "./BundleModal";
+import DetailsModal from "./DetailsModal";
+import React from "react";
+import { useRouter } from "next/navigation";
+
+export default function GetStartedComponentThree({
+  steps,
+  currentStep,
+  selectedState,
+  selectedType,
+  stateNames,
+  programTypes,
+  bundleProducts,
+  bonusProducts,
+  individualProducts,
+  bundleModalOpen,
+  setBundleModalOpen,
+}: {
+  steps: string[];
+  currentStep: number;
+  selectedState: string;
+  selectedType: string;
+  stateNames: { [abbr: string]: string };
+  programTypes: { key: string; desc: string }[];
+  bundleProducts: { key: string }[];
+  bonusProducts: { key: string }[];
+  individualProducts: { key: string; desc: string; popular?: boolean }[];
+  bundleModalOpen: boolean;
+  setBundleModalOpen: (open: boolean) => void;
+}) {
+  const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
+  const [detailsProduct, setDetailsProduct] = React.useState<any | null>(null);
+  const router = useRouter();
+  return (
+    <>
+      <Stepper currentStep={currentStep} steps={steps} />
+      <section className="flex flex-col items-center justify-center py-8 pb-32">
+        {/* Header Badges */}
+        <div className="w-full max-w-6xl flex items-center mb-4">
+          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mr-2">State:</span>
+          <span className="bg-[#417a5a] text-white font-semibold px-4 py-2 rounded-full mr-2">{stateNames[selectedState]}</span>
+          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mr-2">Program:</span>
+          <span className="bg-[#417a5a] text-white font-semibold px-4 py-2 rounded-full">{selectedType}</span>
+        </div>
+        <div className="w-full max-w-6xl flex gap-8">
+          {/* Sidebar */}
+          <aside className="w-64 bg-white rounded-xl border border-[#eaffea] p-6 flex flex-col shadow-sm">
+            <div className="mb-4">
+              <span className="block text-xs text-[#417a5a] font-semibold mb-2">STATE</span>
+              <select
+                className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white"
+                value={stateNames[selectedState]}
+                onChange={e => {
+                  const abbr = Object.keys(stateNames).find(key => stateNames[key] === e.target.value);
+                  if (abbr) router.push(`/get-started?state=${abbr}&type=${encodeURIComponent(selectedType)}`);
+                }}
+              >
+                {Object.entries(stateNames).map(([abbr, name]) => (
+                  <option key={abbr} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span className="block text-xs text-[#417a5a] font-semibold mb-2">PROGRAM TYPE (10)</span>
+              <ul className="space-y-2">
+                {programTypes.map((type) => {
+                  const isSelected = selectedType === type.key;
+                  return (
+                    <li
+                      key={type.key}
+                      className={`flex items-center gap-2 text-[#417a5a] text-sm font-semibold rounded-lg px-2 py-1 cursor-pointer transition-all duration-150 ${isSelected ? "bg-[#eaffea] border border-[#417a5a]" : "hover:bg-[#eaffea]"}`}
+                      onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
+                      tabIndex={0}
+                    >
+                      <span>{programTypeIcons[type.key]}</span> {type.key}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            <div className="mt-8">
+              <span className="block text-xs text-[#417a5a] font-semibold mb-2">Current selection</span>
+              <div className="text-[#417a5a] text-sm font-bold">{stateNames[selectedState]}</div>
+              <div className="text-[#417a5a] text-xs">{selectedType}</div>
+            </div>
+          </aside>
+          {/* Main Content */}
+          <main className="flex-1">
+            <div className="flex flex-col items-center mb-6">
+              <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mb-2">{stateNames[selectedState]} • {selectedType}</span>
+              <h2 className="text-2xl font-bold text-[#417a5a] mb-2">Choose Your Products</h2>
+              <p className="text-[#417a5a] mb-6 text-center">Select the resources you need to launch your {selectedType} in {stateNames[selectedState]}</p>
+            </div>
+            {/* Bundle Card */}
+            <div className="border border-[#eaffea] rounded-xl bg-[#f9f9f4] p-6 flex flex-col md:flex-row gap-6 items-center mb-8 shadow-sm">
+              <div className="flex-1">
+                <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-3 py-1 rounded-full">★ Most Popular - Save $1288</span>
+                <h3 className="text-xl font-bold text-[#417a5a] mt-3 mb-2">Complete Licensing Bundle</h3>
+                <p className="text-[#417a5a] mb-4">Everything you need to launch your care business with confidence</p>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mb-4">
+                  {bundleProducts.map((p) => (
+                    <li key={p.key} className="flex items-center gap-2 text-[#417a5a] text-sm">✔ {p.key}</li>
+                  ))}
+                </ul>
+                <div className="text-xs font-semibold text-[#417a5a] mb-1">BONUSES INCLUDED:</div>
+                <ul className="mb-2">
+                  {bonusProducts.map((p) => (
+                    <li key={p.key} className="flex items-center gap-2 text-[#417a5a] text-xs">✔ {p.key}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex flex-col items-center gap-2 min-w-55">
+                <p className="text-[#417a5a] text-sm text-center">Everything you need in one complete package</p>
+                <button
+                  className="bg-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-3 rounded-xl shadow-sm w-full"
+                  onClick={() => setBundleModalOpen(true)}
+                >
+                  See What's Included
+                </button>
+                <div className="text-xs text-[#417a5a]">127 purchased this month</div>
+              </div>
+            </div>
+            {/* Individual Products */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+              {individualProducts.map((p) => (
+                <div key={p.key} className="bg-white border border-[#eaffea] rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-[#417a5a]">{p.key}</span>
+                    {p.popular && (
+                      <span className="ml-2 bg-[#eaffea] text-[#417a5a] text-xs font-bold px-2 py-1 rounded-full">Popular</span>
+                    )}
+                  </div>
+                  <div className="text-[#417a5a] text-xs mb-4">{p.desc}</div>
+                  <button 
+                    className="border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all"
+                    onClick={() => {
+                      setDetailsProduct(p);
+                      setDetailsModalOpen(true);
+                    }}
+                  >View Details</button>
+                </div>
+              ))}
+            </div>
+          </main>
+        </div>
+      </section>
+      <BundleModal
+        open={bundleModalOpen}
+        onClose={() => setBundleModalOpen(false)}
+        bundleTitle={selectedType}
+        price={997}
+        oldPrice={2285}
+        saveAmount={1288}
+        items={bundleProducts.map((p) => ({ label: p.key, price: 297 }))}
+        bonuses={bonusProducts.map((p) => p.key)}
+        coursePrice={297}
+      />
+      {/* Sticky bottom bar */}
+      <div className="w-full sticky left-0 bottom-0 flex justify-center items-end z-40 bg-white border-t border-[#eaffea] py-4 shadow-sm">
+        <div className="max-w-6xl w-full flex justify-between px-4">
+          <button
+            className="text-[#417a5a] font-semibold px-8 py-3 rounded-xl border border-[#eaffea] bg-white hover:bg-[#eaffea]"
+            onClick={() =>
+              router.push(`/get-started?state=${selectedState}`)
+            }
+          >
+            ← Back
+          </button>
+          <button
+            className="bg-[#e6d7b0] text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
+            onClick={() =>
+              router.push(
+                `/get-started?state=${selectedState}&type=${encodeURIComponent(selectedType)}&step=checkout`,
+              )
+            }
+          >
+            Continue →
+          </button>
+        </div>
+      </div>
+    {/* Details Modal integration */}
+    {detailsModalOpen && detailsProduct && (
+      <DetailsModal
+        open={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        state={stateNames[selectedState]}
+        agencyType={selectedType}
+        price={detailsProduct.price || 397}
+        oldPrice={detailsProduct.oldPrice || 516}
+        features={detailsProduct.features || [detailsProduct.desc]}
+      />
+    )}
+    </>
+  );
+}
