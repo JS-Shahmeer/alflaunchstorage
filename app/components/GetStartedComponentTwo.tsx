@@ -2,6 +2,9 @@ import Stepper from "./Stepper";
 import { programTypeIcons } from "./lucide-icons";
 import { useRouter } from "next/navigation";
 import React from "react";
+import Swal from "sweetalert2";
+import GetStartedSidebar from "./GetStartedSidebar";
+import GetStartedStickyBar from "./GetStartedStickyBar";
 
 export default function GetStartedComponentTwo({
   steps,
@@ -31,41 +34,14 @@ export default function GetStartedComponentTwo({
         {/* Main content: sidebar + program types */}
         <div className="w-full max-w-6xl flex gap-8">
           {/* Sidebar */}
-          <aside className="w-64 bg-white rounded-xl border border-[#eaffea] p-6 flex flex-col shadow-sm">
-            <div className="mb-4">
-              <span className="block text-xs text-[#417a5a] font-semibold mb-2">STATE</span>
-              <select
-                className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white"
-                value={stateNames[selectedState]}
-                onChange={e => {
-                  const abbr = Object.keys(stateNames).find(key => stateNames[key] === e.target.value);
-                  if (abbr) router.push(`/get-started?state=${abbr}`);
-                }}
-              >
-                {Object.entries(stateNames).map(([abbr, name]) => (
-                  <option key={abbr} value={name}>{name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <span className="block text-xs text-[#417a5a] font-semibold mb-2">PROGRAM TYPE (10)</span>
-              <ul className="space-y-2">
-                {programTypes.map((type) => {
-                  const isSelected = selectedType === type.key;
-                  return (
-                    <li
-                      key={type.key}
-                      className={`flex items-center gap-2 text-[#417a5a] text-sm font-semibold rounded-lg px-2 py-1 cursor-pointer transition-all duration-150 ${isSelected ? "bg-[#eaffea] border border-[#417a5a]" : "hover:bg-[#eaffea]"}`}
-                      onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
-                      tabIndex={0}
-                    >
-                      <span>{programTypeIcons[type.key]}</span> {type.key}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </aside>
+          <GetStartedSidebar
+            stateNames={stateNames}
+            selectedState={selectedState}
+            selectedType={selectedType || ''}
+            programTypes={programTypes}
+            onStateChange={abbr => router.push(`/get-started?state=${abbr}`)}
+            onTypeChange={type => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type)}`)}
+          />
           {/* Program types grid */}
           <main className="flex-1">
             <h2 className="text-2xl font-bold text-[#417a5a] mb-2 text-center">Select Program Type in {stateNames[selectedState]}</h2>
@@ -80,8 +56,8 @@ export default function GetStartedComponentTwo({
                     onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
                     tabIndex={0}
                   >
-                    <span className="font-semibold text-[#417a5a] mb-2 flex items-center gap-2">{programTypeIcons[type.key]} {type.key}</span>
-                    <span className="text-xs text-[#417a5a]">{type.desc}</span>
+                    <span className="font-semibold text-[#417a5a] mb-2 flex items-start gap-2"><span className="mt-1 shrink-0">{programTypeIcons[type.key]}</span> <span className="text-start">{type.key}</span></span>
+                    <span className="text-xs text-[#417a5a] text-start">{type.desc}</span>
                   </button>
                 );
               })}
@@ -89,29 +65,22 @@ export default function GetStartedComponentTwo({
           </main>
         </div>
       </section>
-      {/* Sticky bottom bar */}
-      <div className="w-full sticky left-0 bottom-0 flex justify-center items-end z-40 bg-white border-t border-[#eaffea] py-4 shadow-sm">
-        <div className="max-w-6xl w-full flex justify-between px-4">
-          <button
-            className="text-[#417a5a] font-semibold px-8 py-3 rounded-xl border border-[#eaffea] bg-white hover:bg-[#eaffea]"
-            onClick={() => router.push("/get-started")}
-          >
-            ← Back
-          </button>
-          <button
-            className="bg-[#e6d7b0] text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
-            onClick={() => {
-              // Only advance if a program type is selected
-              if (selectedType) {
-                router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(selectedType)}`);
-              }
-            }}
-            disabled={!selectedType}
-          >
-            Continue →
-          </button>
-        </div>
-      </div>
+      <GetStartedStickyBar
+        onBack={() => router.push("/get-started")}
+        onContinue={() => {
+          if (!selectedType) {
+            Swal.fire({
+              icon: "warning",
+              title: "Select a program type",
+              text: "Please choose a program type to continue.",
+              confirmButtonColor: "#417a5a"
+            });
+            return;
+          }
+          router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(selectedType)}`);
+        }}
+        continueDisabled={!selectedType}
+      />
     </>
   );
 }

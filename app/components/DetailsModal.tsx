@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { X, CheckCircle, Zap } from "lucide-react";
+import { useCart } from "./cart-context";
 
 interface DetailsModalProps {
   open: boolean;
@@ -10,6 +11,8 @@ interface DetailsModalProps {
   price: number;
   oldPrice: number;
   features: string[];
+  productKey?: string;
+  productDesc?: string;
 }
 
 export default function DetailsModal({
@@ -20,7 +23,10 @@ export default function DetailsModal({
   price,
   oldPrice,
   features,
-}: DetailsModalProps) {
+  productKey,
+  productDesc,
+}: DetailsModalProps & { productKey?: string; productDesc?: string }) {
+  const { addItem } = useCart();
   if (!open) return null;
 
   return (
@@ -121,7 +127,21 @@ export default function DetailsModal({
               Save $119
             </span>
           </div>
-          <button className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-2">
+          <button
+            className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-2"
+            onClick={() => {
+              if (productKey) {
+                addItem({
+                  id: productKey,
+                  name: productKey,
+                  price,
+                  type: agencyType,
+                  state,
+                });
+                onClose();
+              }
+            }}
+          >
             Add to Cart
           </button>
         </div>

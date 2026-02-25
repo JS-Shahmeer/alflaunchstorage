@@ -23,7 +23,7 @@ export default function CartClient() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-6 bg-white rounded-xl border p-6">
                 <div className="bg-green-800 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-xl">
-                  {item.state || item.name.slice(0, 2).toUpperCase()}
+                  {item.state ? item.state.slice(0, 2).toUpperCase() : item.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-lg mb-1 text-black">{item.name}</div>

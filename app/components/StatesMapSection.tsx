@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import USAMap from "react-usa-map";
+import USAMap from "./USAMap";
 
 import { useRouter } from "next/navigation";
 import "./usa-map-hover.css";
@@ -9,7 +9,9 @@ import { HiLocationMarker } from "react-icons/hi";
 
 export default function StatesMapSection() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
-  const [selectedStateName, setSelectedStateName] = useState<string | null>(null);
+  const [selectedStateName, setSelectedStateName] = useState<string | null>(
+    null,
+  );
   const router = useRouter();
 
   // Map of state abbreviations to full names
@@ -74,10 +76,10 @@ export default function StatesMapSection() {
   // Import the CSS file for hover effect
   // (Create app/components/usa-map-hover.css with the required styles)
 
-  const handleStateClick = (event: any) => {
-    // react-usa-map passes event, use dataset.name for abbreviation
-    const abbr = event?.target?.dataset?.name;
+  const handleStateSelect = (abbr: string) => {
     if (abbr && stateNames[abbr]) {
+      setSelectedState(abbr);
+      setSelectedStateName(stateNames[abbr]);
       router.push(`/get-started?state=${abbr}`);
     }
   };
@@ -93,22 +95,11 @@ export default function StatesMapSection() {
             Click any state to get started
           </span>
         </div>
-        <div className="bg-[#eaffea] rounded-xl p-6 flex items-center justify-center">
+        <div className="bg-[#eaffea] rounded-xl p-3 flex items-center justify-center w-full">
           <div className="w-full flex items-center justify-center relative">
             <USAMap
-              customize={Object.fromEntries(
-                Object.keys(stateNames).map((abbr) => [
-                  abbr,
-                  {
-                    name: abbr,
-                    fill: undefined,
-                    stroke: undefined,
-                  },
-                ])
-              )}
-              onClick={handleStateClick}
-              width={600}
-              height={400}
+              selectedState={selectedState || undefined}
+              onSelectState={handleStateSelect}
             />
           </div>
         </div>
@@ -119,7 +110,8 @@ export default function StatesMapSection() {
             </span>
           ) : (
             <span>
-              Select your state to view available care business licensing packages
+              Select your state to view available care business licensing
+              packages
             </span>
           )}
         </div>

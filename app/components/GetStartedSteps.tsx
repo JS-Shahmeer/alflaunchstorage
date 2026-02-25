@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import GetStartedComponentOne from "./GetStartedComponentOne";
 import GetStartedComponentTwo from "./GetStartedComponentTwo";
 import GetStartedComponentThree from "./GetStartedComponentThree";
+import GetStartedComponentFour from "./GetStartedComponentFour";
 import { useSearchParams, useRouter } from "next/navigation";
 import { programTypeIcons } from "./lucide-icons";
 import { products } from "./products-data";
@@ -67,8 +68,9 @@ export default function GetStartedSteps() {
   const searchParams = useSearchParams();
   const selectedState = searchParams.get("state") || null;
   const selectedType = searchParams.get("type") || null;
+  const stepParam = searchParams.get("step") || null;
   const steps = ["Select State", "Program Type", "Choose Products", "Checkout"];
-  const currentStep = selectedState && selectedType ? 3 : selectedState ? 2 : 1;
+  const currentStep = stepParam === 'checkout' ? 4 : selectedState && selectedType ? 3 : selectedState ? 2 : 1;
 
   // Program types data
   const programTypes = useMemo(
@@ -123,6 +125,18 @@ export default function GetStartedSteps() {
   // Step 1: No state selected
   if (!selectedState) {
     return <GetStartedComponentOne steps={steps} currentStep={currentStep} />;
+  }
+
+  // Step 4: Checkout step
+  if (stepParam === 'checkout' && selectedState && selectedType) {
+    return (
+      <GetStartedComponentFour
+        steps={steps}
+        selectedState={selectedState}
+        selectedType={selectedType}
+        stateNames={stateNames}
+      />
+    );
   }
 
   // Step 3: State and type selected

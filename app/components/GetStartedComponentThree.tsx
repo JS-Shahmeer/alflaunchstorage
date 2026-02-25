@@ -5,6 +5,10 @@ import BundleModal from "./BundleModal";
 import DetailsModal from "./DetailsModal";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+import GetStartedSidebar from "./GetStartedSidebar";
+import { useCart } from "./cart-context";
+import GetStartedStickyBar from "./GetStartedStickyBar";
 
 export default function GetStartedComponentThree({
   steps,
@@ -33,6 +37,9 @@ export default function GetStartedComponentThree({
 }) {
   const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
   const [detailsProduct, setDetailsProduct] = React.useState<any | null>(null);
+  const [selectedBundle, setSelectedBundle] = React.useState(false);
+  const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
+  const { items: cartItems, addItem, removeItem } = useCart();
   const router = useRouter();
   return (
     <>
@@ -47,46 +54,14 @@ export default function GetStartedComponentThree({
         </div>
         <div className="w-full max-w-6xl flex gap-8">
           {/* Sidebar */}
-          <aside className="w-64 bg-white rounded-xl border border-[#eaffea] p-6 flex flex-col shadow-sm">
-            <div className="mb-4">
-              <span className="block text-xs text-[#417a5a] font-semibold mb-2">STATE</span>
-              <select
-                className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white"
-                value={stateNames[selectedState]}
-                onChange={e => {
-                  const abbr = Object.keys(stateNames).find(key => stateNames[key] === e.target.value);
-                  if (abbr) router.push(`/get-started?state=${abbr}&type=${encodeURIComponent(selectedType)}`);
-                }}
-              >
-                {Object.entries(stateNames).map(([abbr, name]) => (
-                  <option key={abbr} value={name}>{name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <span className="block text-xs text-[#417a5a] font-semibold mb-2">PROGRAM TYPE (10)</span>
-              <ul className="space-y-2">
-                {programTypes.map((type) => {
-                  const isSelected = selectedType === type.key;
-                  return (
-                    <li
-                      key={type.key}
-                      className={`flex items-center gap-2 text-[#417a5a] text-sm font-semibold rounded-lg px-2 py-1 cursor-pointer transition-all duration-150 ${isSelected ? "bg-[#eaffea] border border-[#417a5a]" : "hover:bg-[#eaffea]"}`}
-                      onClick={() => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type.key)}`)}
-                      tabIndex={0}
-                    >
-                      <span>{programTypeIcons[type.key]}</span> {type.key}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-            <div className="mt-8">
-              <span className="block text-xs text-[#417a5a] font-semibold mb-2">Current selection</span>
-              <div className="text-[#417a5a] text-sm font-bold">{stateNames[selectedState]}</div>
-              <div className="text-[#417a5a] text-xs">{selectedType}</div>
-            </div>
-          </aside>
+          <GetStartedSidebar
+            stateNames={stateNames}
+            selectedState={selectedState}
+            selectedType={selectedType}
+            programTypes={programTypes}
+            onStateChange={abbr => router.push(`/get-started?state=${abbr}&type=${encodeURIComponent(selectedType)}`)}
+            onTypeChange={type => router.push(`/get-started?state=${selectedState}&type=${encodeURIComponent(type)}`)}
+          />
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex flex-col items-center mb-6">
@@ -115,7 +90,27 @@ export default function GetStartedComponentThree({
               <div className="flex flex-col items-center gap-2 min-w-55">
                 <p className="text-[#417a5a] text-sm text-center">Everything you need in one complete package</p>
                 <button
-                  className="bg-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-3 rounded-xl shadow-sm w-full"
+                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-3 rounded-xl shadow-sm w-full ${selectedBundle ? 'ring-2 ring-[#417a5a]' : ''}`}
+                  onClick={() => {
+                    if (selectedBundle) {
+                      removeItem('Complete Licensing Bundle');
+                      setSelectedBundle(false);
+                    } else {
+                      addItem({
+                        id: 'Complete Licensing Bundle',
+                        name: 'Complete Licensing Bundle',
+                        price: 997,
+                        type: selectedType,
+                        state: stateNames[selectedState],
+                      });
+                      setSelectedBundle(true);
+                    }
+                  }}
+                >
+                  {selectedBundle ? 'Selected' : 'Select Bundle'}
+                </button>
+                <button
+                  className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-2 rounded-xl shadow-sm w-full"
                   onClick={() => setBundleModalOpen(true)}
                 >
                   See What's Included
@@ -125,24 +120,48 @@ export default function GetStartedComponentThree({
             </div>
             {/* Individual Products */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-              {individualProducts.map((p) => (
-                <div key={p.key} className="bg-white border border-[#eaffea] rounded-xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold text-[#417a5a]">{p.key}</span>
-                    {p.popular && (
-                      <span className="ml-2 bg-[#eaffea] text-[#417a5a] text-xs font-bold px-2 py-1 rounded-full">Popular</span>
-                    )}
+              {individualProducts.map((p) => {
+                const isSelected = selectedProducts.includes(p.key);
+                const handleSelect = () => {
+                  if (isSelected) {
+                    removeItem(p.key);
+                    setSelectedProducts((prev) => prev.filter((k) => k !== p.key));
+                  } else {
+                    addItem({
+                      id: p.key,
+                      name: p.key,
+                      price: 397, // Default price for individual product
+                      type: selectedType,
+                      state: stateNames[selectedState],
+                    });
+                    setSelectedProducts((prev) => [...prev, p.key]);
+                  }
+                };
+                return (
+                  <div key={p.key} className={`bg-white border ${isSelected ? 'border-[#417a5a] ring-2 ring-[#417a5a]' : 'border-[#eaffea]'} rounded-xl p-6 shadow-sm`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-[#417a5a]">{p.key}</span>
+                      {p.popular && (
+                        <span className="ml-2 bg-[#eaffea] text-[#417a5a] text-xs font-bold px-2 py-1 rounded-full">Popular</span>
+                      )}
+                    </div>
+                    <div className="text-[#417a5a] text-xs mb-4">{p.desc}</div>
+                    <div className="flex gap-2">
+                      <button
+                        className={`border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all ${isSelected ? 'bg-[#eaffea]' : 'bg-white'}`}
+                        onClick={handleSelect}
+                      >{isSelected ? 'Selected' : 'Select'}</button>
+                      <button
+                        className="border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all"
+                        onClick={() => {
+                          setDetailsProduct(p);
+                          setDetailsModalOpen(true);
+                        }}
+                      >View Details</button>
+                    </div>
                   </div>
-                  <div className="text-[#417a5a] text-xs mb-4">{p.desc}</div>
-                  <button 
-                    className="border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all"
-                    onClick={() => {
-                      setDetailsProduct(p);
-                      setDetailsModalOpen(true);
-                    }}
-                  >View Details</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </main>
         </div>
@@ -158,29 +177,31 @@ export default function GetStartedComponentThree({
         bonuses={bonusProducts.map((p) => p.key)}
         coursePrice={297}
       />
-      {/* Sticky bottom bar */}
-      <div className="w-full sticky left-0 bottom-0 flex justify-center items-end z-40 bg-white border-t border-[#eaffea] py-4 shadow-sm">
-        <div className="max-w-6xl w-full flex justify-between px-4">
-          <button
-            className="text-[#417a5a] font-semibold px-8 py-3 rounded-xl border border-[#eaffea] bg-white hover:bg-[#eaffea]"
-            onClick={() =>
-              router.push(`/get-started?state=${selectedState}`)
-            }
-          >
-            ← Back
-          </button>
-          <button
-            className="bg-[#e6d7b0] text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
-            onClick={() =>
-              router.push(
-                `/get-started?state=${selectedState}&type=${encodeURIComponent(selectedType)}&step=checkout`,
-              )
-            }
-          >
-            Continue →
-          </button>
-        </div>
-      </div>
+      <GetStartedStickyBar
+        onBack={() => router.push(`/get-started?state=${selectedState}`)}
+        onContinue={() => {
+          // Allow checkout if bundle is selected OR bundle is in cart OR any individual product is in cart
+          const bundleInCart = cartItems.some(item => item.name === 'Complete Licensing Bundle');
+          const productInCart = cartItems.some(item => individualProducts.some(p => item.name === p.key));
+          if (selectedBundle || bundleInCart || productInCart) {
+            const params = new URLSearchParams({
+              state: selectedState,
+              type: selectedType,
+              step: 'checkout',
+              bundle: selectedBundle || bundleInCart ? '1' : '',
+              products: productInCart ? cartItems.filter(item => individualProducts.some(p => item.name === p.key)).map(item => item.name).join(',') : ''
+            });
+            router.push(`/get-started?${params.toString()}`);
+          } else {
+            Swal.fire({
+              icon: "warning",
+              title: "Select a product",
+              text: "Please select at least one product or the bundle to continue.",
+              confirmButtonColor: "#417a5a"
+            });
+          }
+        }}
+      />
     {/* Details Modal integration */}
     {detailsModalOpen && detailsProduct && (
       <DetailsModal
@@ -191,6 +212,8 @@ export default function GetStartedComponentThree({
         price={detailsProduct.price || 397}
         oldPrice={detailsProduct.oldPrice || 516}
         features={detailsProduct.features || [detailsProduct.desc]}
+        productKey={detailsProduct.key}
+        productDesc={detailsProduct.desc}
       />
     )}
     </>

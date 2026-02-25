@@ -25,7 +25,7 @@ const Header = () => {
     <header className="w-full bg-white/85 backdrop-blur-sm shadow-lg px-4 md:px-8 py-3 z-50 fixed top-0 left-0">
       <div className="max-w-7xl mx-auto  flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <a href="/" className="flex items-center gap-2 md:gap-3">
           <img
             src="https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png"
             alt="Logo"
@@ -35,7 +35,7 @@ const Header = () => {
             Care Licensing{" "}
             <span className="text-green-700 font-bold">Solutions</span>
           </span>
-        </div>
+        </a>
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6 text-sm">

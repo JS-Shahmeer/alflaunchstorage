@@ -4,11 +4,20 @@ import { useCart } from "./cart-context";
 import { X } from "lucide-react";
 import Link from "next/link";
 
-export default function CartModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function CartModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const { items, removeItem } = useCart();
   if (!open) return null;
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * (item.quantity || 1),
+    0,
+  );
 
   // Dropdown style: absolute, right-0, top-full, shadow, z-50
   return (
@@ -34,32 +43,45 @@ export default function CartModal({ open, onClose }: { open: boolean; onClose: (
         </div>
       ) : (
         <>
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 mb-4">
-              <div className="bg-green-800 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
-                {item.state || item.name.slice(0, 2).toUpperCase()}
+          <div className="max-h-48 overflow-auto">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 mb-4">
+                <div className="bg-green-800 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+                  {item.state
+                    ? item.state.slice(0, 2).toUpperCase()
+                    : item.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold leading-tight text-black">
+                    {item.name}
+                  </div>
+                  <div className="text-xs text-gray-500">{item.type}</div>
+                  <div className="text-green-700 font-bold">${item.price}</div>
+                </div>
+                <button
+                  className="text-gray-400 hover:text-red-600 text-xl"
+                  onClick={() => removeItem(item.id)}
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
               </div>
-              <div className="flex-1">
-                <div className="font-semibold leading-tight text-black">{item.name}</div>
-                <div className="text-xs text-gray-500">{item.type}</div>
-                <div className="text-green-700 font-bold">${item.price}</div>
-              </div>
-              <button
-                className="text-gray-400 hover:text-red-600 text-xl"
-                onClick={() => removeItem(item.id)}
-                aria-label="Remove"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
           <div className="flex justify-between font-semibold mt-2 mb-4">
             <span className="text-black">Subtotal</span>
             <span className="text-black">${subtotal}</span>
           </div>
           <div className="flex gap-2">
-            <a href="/cart" className="flex-1 border border-green-700 text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition">View Cart</a>
-            <button className="flex-1 bg-green-800 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-900 transition">Checkout</button>
+            <a
+              href="/cart"
+              className="flex-1 border border-green-700 text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition"
+            >
+              View Cart
+            </a>
+            <button className="flex-1 bg-green-800 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-900 transition">
+              Checkout
+            </button>
           </div>
         </>
       )}
