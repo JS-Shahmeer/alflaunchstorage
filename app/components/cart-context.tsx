@@ -1,4 +1,6 @@
+"use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useToast } from "./SimpleToast";
 
 export type CartItem = {
   id: string;
@@ -26,6 +28,8 @@ export function useCart() {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const toast = useToast();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -45,14 +49,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
   function addItem(item: CartItem) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id);
+      let updated;
       if (existing) {
-        return prev.map((i) =>
+        updated = prev.map((i) =>
           i.id === item.id ? { ...i, quantity: (i.quantity || 1) + 1 } : i
         );
+      } else {
+        updated = [...prev, { ...item, quantity: 1 }];
       }
-      return [...prev, { ...item, quantity: 1 }];
+      setLastAdded(item.name);
+      return updated;
     });
   }
+  React.useEffect(() => {
+    if (lastAdded) {
+      toast.show(`${lastAdded} added to cart!`);
+      setLastAdded(null);
+    }
+  }, [lastAdded, toast]);
 
   function removeItem(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));

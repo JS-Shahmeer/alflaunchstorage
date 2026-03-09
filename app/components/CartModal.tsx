@@ -75,13 +75,13 @@ export default function CartModal({
           <div className="flex gap-2">
             <a
               href="/cart"
-              className="flex-1 border border-green-700 text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition"
+              className="flex-1 border border-green-700 text-center text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-50 transition"
             >
               View Cart
             </a>
-            <button className="flex-1 bg-green-800 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-900 transition">
+            <a href="/checkout" className="flex-1 text-center bg-green-800 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-900 transition">
               Checkout
-            </button>
+            </a>
           </div>
         </>
       )}

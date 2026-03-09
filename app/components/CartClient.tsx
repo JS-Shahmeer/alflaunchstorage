@@ -47,9 +47,9 @@ export default function CartClient() {
             </button>
           </div>
         )}
-        <Link href="/shop" className="mt-8 inline-flex items-center gap-2 text-green-900 font-semibold hover:underline">
+        <a href="/shop" className="mt-8 inline-flex items-center gap-2 text-green-900 font-semibold hover:underline">
           <span className=""> <ArrowLeft size={15} /> </span> Continue Shopping
-        </Link>
+        </a>
       </div>
       {/* Order Summary */}
       <div className="w-full max-w-sm bg-white rounded-xl border p-6 h-fit">
@@ -75,7 +75,15 @@ export default function CartClient() {
           <span className="text-black">Total</span>
           <span className="text-black">${subtotal}</span>
         </div>
-        <button className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-4">Proceed to Checkout</button>
+        {items.length > 0 ? (
+          <a href="/checkout" className="w-full block bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-4 text-center">
+            Proceed to Checkout
+          </a>
+        ) : (
+          <button className="w-full bg-gray-300 text-gray-500 font-semibold py-3 rounded-lg mb-4 cursor-not-allowed" disabled>
+            Proceed to Checkout
+          </button>
+        )}
         <div className="space-y-2 text-xs text-gray-600 mt-2">
           <div className="flex items-center gap-2"><Lock className="text-green-700 w-4 h-4" /> Secure checkout</div>
           <div className="flex items-center gap-2"><Zap className="text-green-700 w-4 h-4" /> Instant digital delivery</div>

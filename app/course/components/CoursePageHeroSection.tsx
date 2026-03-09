@@ -8,10 +8,11 @@ import {
   ShieldCheck,
   Zap,
   ArrowRight,
+  Star,
 } from "lucide-react";
 import { gsap } from "gsap";
 
-const HeroSection = () => {
+const CoursePageHeroSection = () => {
   const heroRef = useRef(null);
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -91,19 +92,18 @@ const HeroSection = () => {
         {/* LEFT SIDE */}
         <div ref={leftRef} className="text-white text-center lg:text-left">
           <div className="stagger-item inline-block bg-white/10 backdrop-blur-sm px-4 py-1 rounded-full text-xs sm:text-sm mb-6">
-            Trusted by 500+ Care Business Owners
+            Complete Video Training
           </div>
 
-          <h1 className="stagger-item text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-6">
-            Everything You Need
-            to Launch a{" "}
-            <span className="text-yellow-400">Licensed Care Business</span>
+          <h1 className="stagger-item text-3xl sm:text-4xl md:text-[44px] font-extrabold leading-tight mb-6">
+            Care Licensing Solutions{" "}
+            <span className="text-yellow-400">Operational Success Academy</span>
           </h1>
 
           <p className="stagger-item text-base text-gray-200 mb-8 max-w-xl mx-auto lg:mx-0">
-            State-specific licensing packages, compliance-ready policies, and
-            proven operational frameworks trusted by care business owners
-            nationwide.
+            The complete 11-module system to launch and scale your care business
+            with confidence. Learn from industry experts who've helped hundreds
+            of businesses succeed.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
@@ -129,72 +129,32 @@ const HeroSection = () => {
             </a>
           </div>
 
-          <div className="flex flex-wrap justify-center lg:justify-start gap-6 text-sm text-gray-200">
-            <div className="stagger-item flex items-center gap-2">
-              <ShieldCheck size={18} className="text-yellow-400" />
-              50-State Coverage
+          <div className="flex items-center gap-3">
+            {/* Stars */}
+            <div className="flex items-center gap-1 text-[#ffcd42]">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={16} fill="#ffcd42" stroke="#ffcd42" />
+              ))}
             </div>
 
-            <div className="stagger-item flex items-center gap-2">
-              <ShieldCheck size={18} className="text-yellow-400" />
-              Compliance-Ready
-            </div>
+            {/* Rating */}
+            <span className="font-semibold text-white">4.9/5</span>
 
-            <div className="stagger-item flex items-center gap-2">
-              <ShieldCheck size={18} className="text-yellow-400" />
-              Expert-Crafted
-            </div>
-
-            <div className="stagger-item flex items-center gap-2">
-              <Zap size={18} className="text-yellow-400" />
-              Instant Download
-            </div>
+            {/* Reviews */}
+            <span className="text-gray-200">from 847 reviews</span>
           </div>
         </div>
 
         {/* RIGHT SIDE */}
-        <div ref={rightRef} className="w-full">
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-            {[
-              {
-                icon: <BarChart3 className="text-yellow-400" size={26} />,
-                title: "Market Research Report",
-                desc: "50+ Pages, Data-Driven Insights",
-              },
-              {
-                icon: <FileText className="text-yellow-400" size={26} />,
-                title: "Complete Policy Manual",
-                desc: "150+ Pages, State-Specific",
-              },
-              {
-                icon: <ShieldCheck className="text-yellow-400" size={26} />,
-                title: "Licensing Checklist",
-                desc: "Step-by-Step Guidance",
-              },
-              {
-                icon: <Zap className="text-yellow-400" size={26} />,
-                title: "Pro Forma Templates",
-                desc: "Financial Planning Made Easy",
-              },
-            ].map((item, i) => (
-              <div
-                key={i}
-                ref={(el) => {
-                  if (el) itemsRef.current[i] = el;
-                }}
-                className="flex items-start gap-4 bg-white/10 p-4 rounded-xl"
-              >
-                {item.icon}
-                <div>
-                  <h4 className="font-semibold text-white text-sm sm:text-base">
-                    {item.title}
-                  </h4>
-                  <p className="text-gray-300 text-xs sm:text-sm">
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+        <div ref={rightRef} className="w-full flex justify-center">
+          <div className="relative w-full max-w-lg aspect-video rounded-2xl overflow-hidden shadow-xl">
+            <iframe
+              src="https://www.loom.com/embed/501b407b711f429e9c08b6b7f1f70e34"
+              className="absolute inset-0 w-full h-full"
+              frameBorder="0"
+              allowFullScreen
+              title="Course Introduction"
+            ></iframe>
           </div>
         </div>
       </div>
@@ -202,4 +162,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection;
+export default CoursePageHeroSection;

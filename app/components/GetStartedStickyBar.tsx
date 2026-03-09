@@ -23,7 +23,7 @@ export default function GetStartedStickyBar({
           ← Back
         </button>
         <button
-          className="bg-[#e6d7b0] text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
+          className="bg-[#e6d7b0] hover:bg-[#f1d99e] cursor-pointer text-[#417a5a] font-semibold px-8 py-3 rounded-xl shadow-sm"
           onClick={onContinue}
           disabled={continueDisabled}
         >

@@ -77,7 +77,7 @@ export default function CTA() {
         </p>
 
         <div className="cta-buttons mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button className="group bg-[#f0b23a] hover:bg-[#e3a62f] text-[#1c3b2b] font-semibold px-7 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]">
+          <a href="/shop" className="group bg-[#f0b23a] hover:bg-[#e3a62f] text-[#1c3b2b] font-semibold px-7 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]">
             <span className="flex items-center gap-2">
               Browse Packages
               <ArrowRight
@@ -85,11 +85,11 @@ export default function CTA() {
                 size={15}
               />
             </span>
-          </button>
+          </a>
 
-          <button className="border border-white/40 hover:border-white text-white px-7 py-3 rounded-xl font-medium transition-all duration-300 hover:bg-white/10 active:scale-[0.98]">
+          <a href="/bundles" className="border border-white/40 hover:border-white text-white px-7 py-3 rounded-xl font-medium transition-all duration-300 hover:bg-white/10 active:scale-[0.98]">
             Compare Bundles
-          </button>
+          </a>
         </div>
 
         {/* bottom card */}

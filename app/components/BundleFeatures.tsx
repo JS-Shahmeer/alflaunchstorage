@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ChevronDown } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { BarChart3, ClipboardList, FileText, LineChart } from "lucide-react";
+import Link from "next/link";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -211,9 +212,9 @@ export default function BundleFeatures() {
             Ready to get started with your state-specific package?
           </p>
 
-          <button className="bg-[#2F5D46] hover:bg-[#254A38] text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-all duration-300">
+          <a href="/shop" className="bg-[#2F5D46] hover:bg-[#254A38] text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-all duration-300">
             View Packages
-          </button>
+          </a>
         </div>
       </div>
     </section>

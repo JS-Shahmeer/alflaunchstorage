@@ -80,8 +80,8 @@ export default function GetStartedComponentFour({
               </div>
               <GetStartedStickyBar
                 onBack={() => router.back()}
-                onContinue={() => {}}
-                continueDisabled={true}
+                onContinue={() => router.push("/checkout")}
+                continueDisabled={false}
               />
             </div>
           </main>

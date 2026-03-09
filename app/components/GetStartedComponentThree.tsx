@@ -1,4 +1,5 @@
 import Stepper from "./Stepper";
+import { useToast } from "./SimpleToast";
 import { programTypeIcons } from "./lucide-icons";
 import { FileText, Award, Users } from "lucide-react";
 import BundleModal from "./BundleModal";
@@ -40,6 +41,7 @@ export default function GetStartedComponentThree({
   const [selectedBundle, setSelectedBundle] = React.useState(false);
   const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
   const { items: cartItems, addItem, removeItem } = useCart();
+  const toast = useToast();
   const router = useRouter();
   return (
     <>
@@ -104,6 +106,7 @@ export default function GetStartedComponentThree({
                         state: stateNames[selectedState],
                       });
                       setSelectedBundle(true);
+                      toast.show('Complete Licensing Bundle added to cart!');
                     }
                   }}
                 >
@@ -135,6 +138,7 @@ export default function GetStartedComponentThree({
                       state: stateNames[selectedState],
                     });
                     setSelectedProducts((prev) => [...prev, p.key]);
+                    toast.show(`${p.key} added to cart!`);
                   }
                 };
                 return (

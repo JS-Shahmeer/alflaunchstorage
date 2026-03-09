@@ -2,6 +2,7 @@
 import React from "react";
 import { X, CheckCircle, Zap } from "lucide-react";
 import { useCart } from "./cart-context";
+import { useToast } from "./SimpleToast";
 
 interface DetailsModalProps {
   open: boolean;
@@ -27,6 +28,7 @@ export default function DetailsModal({
   productDesc,
 }: DetailsModalProps & { productKey?: string; productDesc?: string }) {
   const { addItem } = useCart();
+  const toast = useToast();
   if (!open) return null;
 
   return (
@@ -138,6 +140,7 @@ export default function DetailsModal({
                   type: agencyType,
                   state,
                 });
+                toast.show(`${productKey} added to cart!`);
                 onClose();
               }
             }}

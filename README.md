@@ -20,6 +20,38 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Stripe Payment Setup
+
+This project includes Stripe payment integration for the checkout flow.
+
+### 1. Get Stripe API Keys
+
+1. Create a Stripe account at [https://dashboard.stripe.com](https://dashboard.stripe.com)
+2. Go to API Keys section
+3. Copy your publishable key and secret key
+
+### 2. Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```bash
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+```
+
+### 3. Test the Integration
+
+- Use test card: `4242 4242 4242 4242`
+- Any future expiry date
+- Any CVC code
+
+### 4. Go Live
+
+When ready for production:
+- Replace test keys with live keys
+- Update the API version in `app/api/create-payment-intent/route.ts` if needed
+- Configure webhooks for payment confirmations
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

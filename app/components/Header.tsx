@@ -4,15 +4,16 @@ import { useCart } from "./cart-context";
 import dynamic from "next/dynamic";
 const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X, Search, ShoppingCart } from "lucide-react";
 
 const navLinks = [
-  { href: "/", label: "Home", highlight: true },
+  { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/states", label: "By State" },
-  { href: "/", label: "Guides" },
-  { href: "/", label: "Course" },
-  { href: "/", label: "About" },
+  { href: "/course", label: "Course" },
+  // { href: "/about", label: "About" },
+  // { href: "/guides", label: "Guides" },
 ];
 
 const Header = () => {
@@ -20,6 +21,10 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const { items } = useCart();
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const pathname = usePathname();
+
+  const linkClass =
+    "relative w-fit text-gray-700 hover:text-green-700 transition after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-green-700 after:transition-all hover:after:w-full";
 
   return (
     <header className="w-full bg-white/85 backdrop-blur-sm shadow-lg px-4 md:px-8 py-3 z-50 fixed top-0 left-0">
@@ -39,19 +44,24 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6 text-sm">
-          {navLinks.map((link, idx) => (
-            <a
-              key={idx}
-              href={link.href}
-              className={
-                link.highlight
-                  ? "text-green-700 font-semibold"
-                  : "text-gray-700 hover:text-green-700 transition"
-              }
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link, idx) => {
+            const isActive =
+              pathname === link.href ||
+              (link.href !== "/" && pathname.startsWith(link.href));
+            return (
+              <a
+                key={idx}
+                href={link.href}
+                className={`${linkClass} ${
+                  isActive
+                    ? "text-green-700 font-semibold after:w-full"
+                    : ""
+                }`}
+              >
+                {link.label}
+              </a>
+            );
+          })}
         </nav>
 
         {/* Desktop Actions */}
@@ -75,12 +85,12 @@ const Header = () => {
             )}
           </div>
 
-          <Link
-            href="/"
+          <a
+            href="/states"
             className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition"
           >
             Get Started
-          </Link>
+          </a>
         </div>
 
         {/* Mobile Menu / Close Button */}
@@ -102,20 +112,25 @@ const Header = () => {
           }`}
         >
           <div className="p-6 flex flex-col gap-6 mt-16 bg-white">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className={
-                  link.highlight
-                    ? "text-green-700 font-semibold text-lg"
-                    : "text-gray-700 hover:text-green-700 text-lg transition"
-                }
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link, idx) => {
+              const isActive =
+                pathname === link.href ||
+                (link.href !== "/" && pathname.startsWith(link.href));
+              return (
+                <a
+                  key={idx}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`${linkClass} text-lg ${
+                    isActive
+                      ? "text-green-700 font-semibold after:w-full"
+                      : ""
+                  }`}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
 
             {/* Mobile Icons */}
             <div className="flex items-center gap-6 mt-4">
@@ -128,13 +143,13 @@ const Header = () => {
               </div>
             </div>
 
-            <Link
-              href="/"
+            <a
+              href="/states"
               onClick={() => setMenuOpen(false)}
               className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition text-center mt-4"
             >
               Get Started
-            </Link>
+            </a>
           </div>
         </div>
 
