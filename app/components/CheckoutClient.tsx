@@ -10,34 +10,34 @@ import { useToast } from "./SimpleToast";
 function Stepper({ step }: { step: number }) {
   const steps = ["Cart", "Information", "Payment", "Confirmation"];
   return (
-    <div className="flex items-center justify-center gap-8 py-8">
+    <div className="flex items-center justify-center gap-4 lg:gap-8 py-4 md:py-8 px-2 overflow-x-auto">
       {steps.map((label, idx) => {
         const isCompleted = step > idx + 1;
         const isActive = step === idx + 1;
         return (
-          <div key={label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center md:flex-row flex-col gap-0.5 md:gap-2 flex-shrink-0">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg ${
+              className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-xs md:text-lg flex-shrink-0 ${
                 isActive || isCompleted
                   ? "bg-green-800 text-white"
                   : "bg-gray-100 text-green-800"
               }`}
             >
-              {isCompleted ? <Check size={22} /> : idx + 1}
+              {isCompleted ? <Check size={16} className="md:w-[22px] md:h-[22px]" /> : idx + 1}
             </div>
             <span
-              className={
+              className={`text-xs md:text-sm lg:text-base sm:inline ${
                 isActive
                   ? "font-semibold text-black"
                   : isCompleted
                     ? "text-green-800 font-semibold"
                     : "text-gray-500"
-              }
+              }`}
             >
               {label}
             </span>
             {idx < steps.length - 1 && (
-              <div className="w-16 h-px bg-gray-300 mx-2" />
+              <div className="w-2 md:w-4 lg:w-16 h-px bg-gray-300 mx-0.5 md:mx-2" />
             )}
           </div>
         );
@@ -242,40 +242,40 @@ export default function CheckoutClient() {
   // Order summary with discount and tax
   function OrderSummary() {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4 text-black">Order Summary</h2>
+      <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-md w-full lg:max-w-md">
+        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-black">Order Summary</h2>
         {items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between mb-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-green-800 text-white flex items-center justify-center font-bold text-lg">
+          <div key={item.id} className="flex items-center justify-between mb-3 md:mb-4 gap-2">
+            <div className="flex items-start gap-2 md:gap-3 min-w-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-green-800 text-white flex items-center justify-center font-bold text-xs md:text-lg">
                 {item.state ? item.state.slice(0, 2).toUpperCase() : "CT"}
               </div>
-              <div>
-                <div className="font-semibold text-black">{item.name}</div>
+              <div className="min-w-0">
+                <div className="font-semibold text-black text-sm md:text-base truncate">{item.name}</div>
                 <div className="text-xs text-gray-500">PDF</div>
               </div>
             </div>
-            <div className="font-bold text-black text-lg">${item.price}</div>
+            <div className="font-bold text-black text-sm md:text-lg flex-shrink-0">${item.price}</div>
           </div>
         ))}
 
         {/* Discount Code Section */}
         {step < 4 && (
-          <div className="border-t pt-4 mt-4 mb-4">
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
+          <div className="border-t pt-3 md:pt-4 mt-3 md:mt-4 mb-3 md:mb-4">
+            <label className="block text-xs md:text-sm font-semibold text-gray-600 mb-2">
               Promo Code
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-col sm:flex-row">
               <input
                 type="text"
                 value={discountCode}
                 onChange={(e) => setDiscountCode(e.target.value)}
                 placeholder="Enter code"
-                className="flex-1 border rounded-lg px-3 py-2 text-sm text-gray-600 border-gray-300"
+                className="flex-1 border rounded-lg px-3 py-2 text-xs md:text-sm text-gray-600 border-gray-300"
               />
               <button
                 onClick={applyDiscountCode}
-                className="bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-2 rounded-lg text-sm"
+                className="bg-green-700 hover:bg-green-800 text-white font-semibold px-3 py-2 rounded-lg text-xs md:text-sm whitespace-nowrap"
               >
                 Apply
               </button>
@@ -286,30 +286,30 @@ export default function CheckoutClient() {
           </div>
         )}
 
-        <div className="border-t pt-4 mt-4">
-          <div className="flex justify-between mb-2">
+        <div className="border-t pt-3 md:pt-4 mt-3 md:mt-4">
+          <div className="flex justify-between mb-2 text-xs md:text-sm">
             <span className="text-gray-600">Subtotal</span>
             <span className="font-semibold text-black">
               ${subtotal.toFixed(2)}
             </span>
           </div>
           {discountAmount > 0 && (
-            <div className="flex justify-between mb-2 text-green-700">
+            <div className="flex justify-between mb-2 text-green-700 text-xs md:text-sm">
               <span>Discount ({discountPercent}%)</span>
               <span className="font-semibold">
                 -${discountAmount.toFixed(2)}
               </span>
             </div>
           )}
-          <div className="flex justify-between mb-2">
+          <div className="flex justify-between mb-2 text-xs md:text-sm">
             <span className="text-gray-600">Tax (8%)</span>
             <span className="font-semibold text-black">
               ${taxAmount.toFixed(2)}
             </span>
           </div>
-          <div className="flex justify-between border-t pt-2">
-            <span className="font-bold text-lg text-gray-600">Total</span>
-            <span className="font-bold text-lg text-black">
+          <div className="flex justify-between border-t pt-2 md:pt-3">
+            <span className="font-bold text-base md:text-lg text-gray-600">Total</span>
+            <span className="font-bold text-base md:text-lg text-black">
               ${total.toFixed(2)}
             </span>
           </div>
@@ -324,7 +324,7 @@ export default function CheckoutClient() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pt-20 pb-10">
       <Stepper step={step} />
-      <div className="flex justify-center items-start gap-8 px-8">
+      <div className="flex justify-center items-start gap-4 md:gap-8 px-4 md:px-8 flex-col lg:flex-row">
         {/* Left: Step Components */}
         {step === 2 && (
           <CheckoutCustomerInfo
@@ -344,30 +344,32 @@ export default function CheckoutClient() {
           />
         )}
         {step === 4 && (
-          <CheckoutPaymentConfirmation
-            orderNumber={confirmationData.orderNumber}
-            customerEmail={confirmationData.email}
-            items={confirmationData.items}
-            downloads={confirmationData.items.map((item) => ({
-              name: item.name,
-              type: "PDF",
-            }))}
-            onlineAccess={
-              confirmationData.items.some((i) => i.name.toLowerCase().includes("bundle"))
-                ? [
-                    { name: "Video Training Course", type: "Full Access" },
-                    { name: "Private Community Access", type: "Premium Access" },
-                  ]
-                : [{ name: "Video Training Course", type: "Full Access" }]
-            }
-            discount={confirmationData.discount}
-            tax={confirmationData.tax}
-            orderDate={confirmationData.orderDate}
-            paymentStatus="Completed"
-          />
+          <div className="w-full">
+            <CheckoutPaymentConfirmation
+              orderNumber={confirmationData.orderNumber}
+              customerEmail={confirmationData.email}
+              items={confirmationData.items}
+              downloads={confirmationData.items.map((item) => ({
+                name: item.name,
+                type: "PDF",
+              }))}
+              onlineAccess={
+                confirmationData.items.some((i) => i.name.toLowerCase().includes("bundle"))
+                  ? [
+                      { name: "Video Training Course", type: "Full Access" },
+                      { name: "Private Community Access", type: "Premium Access" },
+                    ]
+                  : [{ name: "Video Training Course", type: "Full Access" }]
+              }
+              discount={confirmationData.discount}
+              tax={confirmationData.tax}
+              orderDate={confirmationData.orderDate}
+              paymentStatus="Completed"
+            />
+          </div>
         )}
-        {/* Right: Order Summary (hidden on confirmation step) */}
-        {step !== 4 && <OrderSummary />}
+        {/* Right: Order Summary (hidden on confirmation step, stacks below on mobile) */}
+        {step !== 4 && <div className="w-full lg:w-auto"><OrderSummary /></div>}
       </div>
     </div>
   );

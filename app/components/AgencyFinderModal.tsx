@@ -94,7 +94,7 @@ export default function AgencyFinderModal({
             No spam. Unsubscribe anytime.
           </p>
           {/* Footer Stats */}
-          <div className="flex justify-center gap-12 mt-2 mb-2">
+          <div className="hidden md:flex justify-center gap-12 mt-2 mb-2">
             <div className="flex flex-col items-center">
               <span className="text-[#e6d98c] text-2xl font-bold">10</span>
               <span className="text-white/80 text-sm">Agency Types</span>

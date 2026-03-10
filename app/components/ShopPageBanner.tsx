@@ -1,28 +1,16 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 const AgencyFinderModal = dynamic(() => import("./AgencyFinderModal"), {
   ssr: false,
 });
-import { gsap } from "gsap";
 
 export default function ShopPageBanner() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const subheadingRef = useRef<HTMLParagraphElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
-  useLayoutEffect(() => {
-    const tl = gsap.timeline({ defaults: { duration: 1, ease: "power3.out" } });
-    tl.from(headingRef.current, { y: 50, opacity: 0 })
-      .from(subheadingRef.current, { y: 50, opacity: 0 }, "-=0.5")
-      .from(
-        buttonRef.current,
-        { scale: 0, opacity: 0, display: "inline-block" },
-        "-=0.5",
-      );
-  }, []);
 
   return (
     <>

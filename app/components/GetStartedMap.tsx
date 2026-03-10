@@ -69,11 +69,11 @@ export default function GetStartedMap() {
   };
 
   return (
-    <section className="flex flex-col items-center justify-center py-12">
-      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg border border-[#b6ff7a] mx-auto p-8 flex flex-col items-center">
-        <div className="mb-6 flex items-center gap-2">
-          <span className="inline-block bg-[#b6ff7a] text-[#417a5a] font-semibold text-sm px-4 py-1 rounded-full">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+    <section className="flex flex-col items-center justify-center py-8 md:py-12 px-4">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg border border-[#b6ff7a] mx-auto p-4 md:p-8 flex flex-col items-center">
+        <div className="mb-4 md:mb-6 flex items-center gap-2">
+          <span className="inline-block bg-[#b6ff7a] text-[#417a5a] font-semibold text-xs md:text-sm px-3 py-1 md:px-4 rounded-full">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="md:w-[18px] md:h-[18px]">
               <circle cx="12" cy="12" r="10" stroke="#417a5a" strokeWidth="2" />
               <circle
                 cx="12"
@@ -85,11 +85,11 @@ export default function GetStartedMap() {
               />
             </svg>
           </span>
-          <span className="text-lg font-semibold text-[#417a5a]">
+          <span className="text-base md:text-lg font-semibold text-[#417a5a]">
             Step 1: Select your state
           </span>
         </div>
-        <div className="bg-[#eaffea] rounded-xl p-3 flex items-center justify-center w-full">
+        <div className="bg-[#eaffea] rounded-xl p-2 md:p-3 flex items-center justify-center w-full">
           <div className="w-full flex items-center justify-center relative">
             <USAMap
               selectedState={selectedState || undefined}
@@ -97,7 +97,7 @@ export default function GetStartedMap() {
             />
           </div>
         </div>
-        <div className="mt-6 text-center text-[#417a5a] text-sm">
+        <div className="mt-4 md:mt-6 text-center text-[#417a5a] text-xs md:text-sm">
           <span>Please select your state to continue</span>
         </div>
       </div>

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Mail, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
+import LogoImg from "@/public/assets/images/logo-dark-bg.png";
+import Image from "next/image";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -85,10 +87,10 @@ export default function Footer() {
           <div className="footer-col space-y-4">
             {/* Logo */}
             <div className="flex items-center gap-2 md:gap-3">
-              <img
-                src="https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png"
+              <Image
+                src={LogoImg}
                 alt="Logo"
-                className="w-8 h-8 md:w-10 md:h-10 bg-black rounded"
+                className="w-8 h-8 md:w-10 md:h-10 rounded"
               />
               <span className="text-base font-semibold text-white whitespace-nowrap">
                 Care Licensing Solutions
@@ -118,7 +120,7 @@ export default function Footer() {
                 { label: "Browse by State", href: "/states" },
                 { label: "Bundles", href: "/bundles" },
                 { label: "Course", href: "/course" },
-                // { label: "About Us", href: "/about" },
+                { label: "About Us", href: "/about" },
               ].map((link) => (
                 <li key={link.label} className={linkClass}>
                   <a href={link.href}>{link.label}</a>

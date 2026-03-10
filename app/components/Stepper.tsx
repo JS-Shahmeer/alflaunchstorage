@@ -8,7 +8,7 @@ interface StepperProps {
 
 export default function Stepper({ currentStep, steps }: StepperProps) {
   return (
-    <div className="w-full flex items-center justify-center bg-white py-8">
+    <div className="w-full flex items-center justify-center bg-white py-8 md:px-0 px-4">
       <div className="flex w-full max-w-4xl items-center">
         {steps.map((step, idx) => (
           <React.Fragment key={step}>

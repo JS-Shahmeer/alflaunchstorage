@@ -1,429 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 const BundleModal = dynamic(() => import("./BundleModal"), { ssr: false });
 import * as Select from "@radix-ui/react-select";
-import { ChevronDown, Eye } from "lucide-react";
-
-const states = [
-  {
-    code: "AL",
-    name: "Alabama",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_of_Alabama.svg",
-  },
-  {
-    code: "AK",
-    name: "Alaska",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/e/e6/Flag_of_Alaska.svg",
-  },
-  {
-    code: "AZ",
-    name: "Arizona",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Arizona.svg",
-  },
-  {
-    code: "AR",
-    name: "Arkansas",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Arkansas.svg",
-  },
-  {
-    code: "CA",
-    name: "California",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_California.svg",
-  },
-  {
-    code: "CO",
-    name: "Colorado",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/46/Flag_of_Colorado.svg",
-  },
-  {
-    code: "CT",
-    name: "Connecticut",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/96/Flag_of_Connecticut.svg",
-  },
-  {
-    code: "DE",
-    name: "Delaware",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/c/c6/Flag_of_Delaware.svg",
-  },
-  {
-    code: "FL",
-    name: "Florida",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Florida.svg",
-  },
-  {
-    code: "GA",
-    name: "Georgia",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/5/54/Flag_of_Georgia_%28U.S._state%29.svg",
-  },
-  {
-    code: "HI",
-    name: "Hawaii",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Flag_of_Hawaii.svg",
-  },
-  {
-    code: "ID",
-    name: "Idaho",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/a/a4/Flag_of_Idaho.svg",
-  },
-  {
-    code: "IL",
-    name: "Illinois",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_Illinois.svg",
-  },
-  {
-    code: "IN",
-    name: "Indiana",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/a/ac/Flag_of_Indiana.svg",
-  },
-  {
-    code: "IA",
-    name: "Iowa",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/a/aa/Flag_of_Iowa.svg",
-  },
-  {
-    code: "KS",
-    name: "Kansas",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/d/da/Flag_of_Kansas.svg",
-  },
-  {
-    code: "KY",
-    name: "Kentucky",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/8/8d/Flag_of_Kentucky.svg",
-  },
-  {
-    code: "LA",
-    name: "Louisiana",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Flag_of_Louisiana.svg",
-  },
-  {
-    code: "ME",
-    name: "Maine",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/3/35/Flag_of_Maine.svg",
-  },
-  {
-    code: "MD",
-    name: "Maryland",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Flag_of_Maryland.svg",
-  },
-  {
-    code: "MA",
-    name: "Massachusetts",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f2/Flag_of_Massachusetts.svg",
-  },
-  {
-    code: "MI",
-    name: "Michigan",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Flag_of_Michigan.svg",
-  },
-  {
-    code: "MN",
-    name: "Minnesota",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Minnesota.svg",
-  },
-  {
-    code: "MS",
-    name: "Mississippi",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/42/Flag_of_Mississippi.svg",
-  },
-  {
-    code: "MO",
-    name: "Missouri",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Flag_of_Missouri.svg",
-  },
-  {
-    code: "MT",
-    name: "Montana",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Flag_of_Montana.svg",
-  },
-  {
-    code: "NE",
-    name: "Nebraska",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Flag_of_Nebraska.svg",
-  },
-  {
-    code: "NV",
-    name: "Nevada",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f8/Flag_of_Nevada.svg",
-  },
-  {
-    code: "NH",
-    name: "New Hampshire",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/2/28/Flag_of_New_Hampshire.svg",
-  },
-  {
-    code: "NJ",
-    name: "New Jersey",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/92/Flag_of_New_Jersey.svg",
-  },
-  {
-    code: "NM",
-    name: "New Mexico",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_New_Mexico.svg",
-  },
-  {
-    code: "NY",
-    name: "New York",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_New_York.svg",
-  },
-  {
-    code: "NC",
-    name: "North Carolina",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Flag_of_North_Carolina.svg",
-  },
-  {
-    code: "ND",
-    name: "North Dakota",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/e/ee/Flag_of_North_Dakota.svg",
-  },
-  {
-    code: "OH",
-    name: "Ohio",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/4c/Flag_of_Ohio.svg",
-  },
-  {
-    code: "OK",
-    name: "Oklahoma",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Flag_of_Oklahoma.svg",
-  },
-  {
-    code: "OR",
-    name: "Oregon",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Oregon.svg",
-  },
-  {
-    code: "PA",
-    name: "Pennsylvania",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Pennsylvania.svg",
-  },
-  {
-    code: "RI",
-    name: "Rhode Island",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Rhode_Island.svg",
-  },
-  {
-    code: "SC",
-    name: "South Carolina",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/6/69/Flag_of_South_Carolina.svg",
-  },
-  {
-    code: "SD",
-    name: "South Dakota",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_South_Dakota.svg",
-  },
-  {
-    code: "TN",
-    name: "Tennessee",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Tennessee.svg",
-  },
-  {
-    code: "TX",
-    name: "Texas",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Texas.svg",
-  },
-  {
-    code: "UT",
-    name: "Utah",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Flag_of_Utah.svg",
-  },
-  {
-    code: "VT",
-    name: "Vermont",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Vermont.svg",
-  },
-  {
-    code: "VA",
-    name: "Virginia",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/4/47/Flag_of_Virginia.svg",
-  },
-  {
-    code: "WA",
-    name: "Washington",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/5/54/Flag_of_Washington.svg",
-  },
-  {
-    code: "WV",
-    name: "West Virginia",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/2/22/Flag_of_West_Virginia.svg",
-  },
-  {
-    code: "WI",
-    name: "Wisconsin",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/2/22/Flag_of_Wisconsin.svg",
-  },
-  {
-    code: "WY",
-    name: "Wyoming",
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Flag_of_Wyoming.svg",
-  },
-];
-
-const allProducts = [
-  {
-    state: "Alabama",
-    code: "AL",
-    program: "Nursing Facility",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Alabama Nursing Facility Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Alabama", "Nursing Facility"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Flag_of_Alabama.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "California",
-    code: "CA",
-    program: "Group Home for Adults with Developmental Disabilities",
-    bestValue: true,
-    type: "Complete Bundle",
-    title:
-      "California Group Home for Adults with Developmental Disabilities Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: [
-      "California",
-      "Group Home for Adults with Developmental Disabilities",
-    ],
-    price: 1397,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_California.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Delaware",
-    code: "DE",
-    program: "Adult Day Care Program",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Delaware Adult Day Care Program Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Delaware", "Adult Day Care Program"],
-    price: 1197,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/c/c6/Flag_of_Delaware.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Illinois",
-    code: "IL",
-    program: "Nursing Facility",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Illinois Nursing Facility Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Illinois", "Nursing Facility"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_Illinois.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Minnesota",
-    code: "MN",
-    program: "Nursing Facility",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Minnesota Nursing Facility Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Minnesota", "Nursing Facility"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Minnesota.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Nevada",
-    code: "NV",
-    program: "Ambulatory Surgical Center",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Nevada Ambulatory Surgical Center Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Nevada", "Ambulatory Surgical Center"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/f/f8/Flag_of_Nevada.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "New York",
-    code: "NY",
-    program: "Child Care Program",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "New York Child Care Program Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["New York", "Child Care Program"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_New_York.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Tennessee",
-    code: "TN",
-    program: "Home Care Organization",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Tennessee Home Care Organization Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Tennessee", "Home Care Organization"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Tennessee.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-  {
-    state: "Texas",
-    code: "TX",
-    program: "Adult Day Care Program",
-    bestValue: true,
-    type: "Complete Bundle",
-    title: "Texas Adult Day Care Program Complete Bundle",
-    description: "Everything you need in one complete package",
-    tags: ["Texas", "Adult Day Care Program"],
-    price: 1297,
-    format: "PDF Format",
-    download: true,
-    flag: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Texas.svg",
-    logo: "https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png",
-    year: 2025,
-  },
-];
-
-const productTypes = [
-  { label: "All Product Types", price: null },
-  { label: "Market Research Report", price: 397 },
-  { label: "Policy & Procedure Manual", price: 497 },
-  { label: "Pro Forma P&L Template", price: 297 },
-  { label: "Licensing Checklist", price: 397 },
-  { label: "Complete Bundle", price: null },
-];
-
-type Product = typeof allProducts[number];
+import { ChevronDown, Eye, X } from "lucide-react";
+import { states, allProducts, productTypes, Product, slugify } from "../data/shopData";
+import Image from "next/image";
 
 export default function ShopMain() {
+  const router = useRouter();
   const [selectedState, setSelectedState] = useState("");
-  const [selectedProductType, setSelectedProductType] = useState("");
+  const [selectedProgramSlug, setSelectedProgramSlug] = useState("");
+  // allow selecting multiple product types via checkboxes
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("Best Selling");
 
@@ -431,17 +22,50 @@ export default function ShopMain() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
 
+  // read URL param from window only once when component mounts
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paramProgram = params.get("programs") || "";
+    if (paramProgram) {
+      setSelectedProgramSlug(paramProgram);
+    }
+  }, []);
+
+  // keep the URL in sync when user clears or selects a program filter
+  useEffect(() => {
+    const base = "/shop";
+    if (selectedProgramSlug) {
+      router.replace(`${base}?programs=${selectedProgramSlug}`);
+    } else {
+      router.replace(base);
+    }
+  }, [selectedProgramSlug, router]);
   // Filter logic
-  const filteredProducts = allProducts.filter((p) => {
+  let filteredProducts = allProducts.filter((p) => {
     const matchesState = !selectedState || p.code === selectedState;
     const matchesProductType =
-      !selectedProductType || p.type === selectedProductType;
+      selectedProductTypes.length === 0 || selectedProductTypes.includes(p.type);
     const matchesSearch =
       !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.state.toLowerCase().includes(search.toLowerCase());
-    return matchesState && matchesProductType && matchesSearch;
+    const matchesProgram =
+      !selectedProgramSlug || slugify(p.program) === selectedProgramSlug;
+    return matchesState && matchesProductType && matchesSearch && matchesProgram;
   });
+
+  // apply sorting
+  if (sort === "Price: Low to High") {
+    filteredProducts = filteredProducts.slice().sort((a, b) => a.price - b.price);
+  } else if (sort === "Price: High to Low") {
+    filteredProducts = filteredProducts.slice().sort((a, b) => b.price - a.price);
+  } else if (sort === "Newest") {
+    filteredProducts = filteredProducts
+      .slice()
+      .sort((a, b) => (b.year || 0) - (a.year || 0));
+  }
+  // Best Selling leaves original order
+
 
   return (
     <section className="bg-[#faf9f7] w-full md:py-12 py-8">
@@ -514,34 +138,47 @@ export default function ShopMain() {
               Product Type
             </label>
             <div className="flex flex-col gap-2">
-              {productTypes.map((pt, idx) => (
-                <label
-                  key={pt.label}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name="productType"
-                    value={pt.label}
-                    checked={selectedProductType === (pt.label === "All Product Types" ? "" : pt.label)}
-                    onChange={() => setSelectedProductType(pt.label === "All Product Types" ? "" : pt.label)}
-                    className="accent-green-700"
-                  />
-                  <span className="text-gray-900 text-sm">
-                    {pt.label}
-                    {pt.price && (
-                      <span className="ml-2 text-green-900 font-semibold">
-                        ${pt.price}
-                      </span>
-                    )}
-                    {pt.label === "Complete Bundle" && (
-                      <span className="block text-green-700 text-xs font-semibold">
-                        See What's Included
-                      </span>
-                    )}
-                  </span>
-                </label>
-              ))}
+              {productTypes.map((pt) => {
+                // skip rendering the "All Product Types" option as its own checkbox;
+                // clearing selections is handled by the UI below
+                if (pt.label === "All Product Types") return null;
+                const isChecked = selectedProductTypes.includes(pt.label);
+                return (
+                  <label
+                    key={pt.label}
+                    className="flex items-start gap-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      value={pt.label}
+                      checked={isChecked}
+                      onChange={() => {
+                        setSelectedProductTypes((prev) => {
+                          if (isChecked) {
+                            return prev.filter((v) => v !== pt.label);
+                          } else {
+                            return [...prev, pt.label];
+                          }
+                        });
+                      }}
+                      className="accent-green-700 mt-1.5"
+                    />
+                    <span className="text-gray-900 text-sm flex items-start flex-col">
+                      {pt.label}
+                      {pt.price && (
+                        <span className="text-green-900 font-semibold">
+                          ${pt.price}
+                        </span>
+                      )}
+                      {pt.label === "Complete Bundle" && (
+                        <span className="block text-green-700 text-xs font-semibold">
+                          See What's Included
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </aside>
@@ -573,6 +210,55 @@ export default function ShopMain() {
               </select>
             </div>
           </div>
+
+          {/* Active Filters Display */}
+          {(selectedState || selectedProductTypes.length > 0 || selectedProgramSlug) && (
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              <span className="text-gray-700 text-sm font-medium">Active filters:</span>
+              {selectedState && (
+                <div
+                  className="inline-flex items-center gap-2 bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
+                  onClick={() => setSelectedState("")}
+                >
+                  <span>
+                    {states.find((s) => s.code === selectedState)?.name}
+                  </span>
+                  <X size={16} />
+                </div>
+              )}
+              {selectedProgramSlug && (
+                <div
+                  className="inline-flex items-center gap-2 bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
+                  onClick={() => setSelectedProgramSlug("")}
+                >
+                  <span>{selectedProgramSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                  <X size={16} />
+                </div>
+              )}
+              {selectedProductTypes.map((type) => (
+                <div
+                  key={type}
+                  className="inline-flex items-center gap-2 bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
+                  onClick={() =>
+                    setSelectedProductTypes((prev) => prev.filter((t) => t !== type))
+                  }
+                >
+                  <span>{type}</span>
+                  <X size={16} />
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  setSelectedState("");
+                  setSelectedProductTypes([]);
+                  setSelectedProgramSlug("");
+                }}
+                className="text-green-800 hover:text-green-900 text-sm font-medium underline"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
 
           {/* Product Cards */}
           {filteredProducts.length === 0 ? (
@@ -642,10 +328,10 @@ export default function ShopMain() {
 
                       {/* Logo */}
                       <div>
-                        <img
+                        <Image
                           src={p.logo}
                           alt="logo"
-                          className="w-10 h-10 rounded bg-black"
+                          className="w-10 h-10 rounded"
                         />
                       </div>
                     </div>

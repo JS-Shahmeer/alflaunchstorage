@@ -46,15 +46,15 @@ export default function GetStartedComponentThree({
   return (
     <>
       <Stepper currentStep={currentStep} steps={steps} />
-      <section className="flex flex-col items-center justify-center py-8 pb-32">
+      <section className="flex flex-col items-center justify-center py-4 md:py-8 pb-24 md:pb-32 px-4">
         {/* Header Badges */}
-        <div className="w-full max-w-6xl flex items-center mb-4">
-          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mr-2">State:</span>
-          <span className="bg-[#417a5a] text-white font-semibold px-4 py-2 rounded-full mr-2">{stateNames[selectedState]}</span>
-          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mr-2">Program:</span>
-          <span className="bg-[#417a5a] text-white font-semibold px-4 py-2 rounded-full">{selectedType}</span>
+        <div className="w-full max-w-6xl flex flex-col sm:flex-row items-start sm:items-center mb-4 gap-2">
+          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-3 py-1.5 rounded-full text-sm mr-0 sm:mr-2">State:</span>
+          <span className="bg-[#417a5a] text-white font-semibold px-3 py-1.5 rounded-full text-sm mr-0 sm:mr-2">{stateNames[selectedState]}</span>
+          <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-3 py-1.5 rounded-full text-sm mr-0 sm:mr-2">Program:</span>
+          <span className="bg-[#417a5a] text-white font-semibold px-3 py-1.5 rounded-full text-sm">{selectedType}</span>
         </div>
-        <div className="w-full max-w-6xl flex gap-8">
+        <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-4 lg:gap-8">
           {/* Sidebar */}
           <GetStartedSidebar
             stateNames={stateNames}
@@ -66,20 +66,20 @@ export default function GetStartedComponentThree({
           />
           {/* Main Content */}
           <main className="flex-1">
-            <div className="flex flex-col items-center mb-6">
-              <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-4 py-2 rounded-full mb-2">{stateNames[selectedState]} • {selectedType}</span>
-              <h2 className="text-2xl font-bold text-[#417a5a] mb-2">Choose Your Products</h2>
-              <p className="text-[#417a5a] mb-6 text-center">Select the resources you need to launch your {selectedType} in {stateNames[selectedState]}</p>
+            <div className="flex flex-col items-center mb-4 md:mb-6">
+              <span className="bg-[#eaffea] text-[#417a5a] font-semibold px-3 py-1.5 rounded-full mb-2 text-sm">{stateNames[selectedState]} • {selectedType}</span>
+              <h2 className="text-xl md:text-2xl font-bold text-[#417a5a] mb-2 text-center">Choose Your Products</h2>
+              <p className="text-[#417a5a] mb-4 md:mb-6 text-center text-sm md:text-base">Select the resources you need to launch your {selectedType} in {stateNames[selectedState]}</p>
             </div>
             {/* Bundle Card */}
-            <div className="border border-[#eaffea] rounded-xl bg-[#f9f9f4] p-6 flex flex-col md:flex-row gap-6 items-center mb-8 shadow-sm">
-              <div className="flex-1">
-                <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-3 py-1 rounded-full">★ Most Popular - Save $1288</span>
-                <h3 className="text-xl font-bold text-[#417a5a] mt-3 mb-2">Complete Licensing Bundle</h3>
-                <p className="text-[#417a5a] mb-4">Everything you need to launch your care business with confidence</p>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mb-4">
+            <div className="border border-[#eaffea] rounded-xl bg-[#f9f9f4] p-4 md:p-6 flex flex-col lg:flex-row gap-4 md:gap-6 items-center mb-6 md:mb-8 shadow-sm">
+              <div className="flex-1 w-full">
+                <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-2 py-1 md:px-3 md:py-1 rounded-full">★ Most Popular - Save $1288</span>
+                <h3 className="text-lg md:text-xl font-bold text-[#417a5a] mt-3 mb-2">Complete Licensing Bundle</h3>
+                <p className="text-[#417a5a] mb-3 md:mb-4 text-sm md:text-base">Everything you need to launch your care business with confidence</p>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 md:gap-x-8 gap-y-1 mb-3 md:mb-4">
                   {bundleProducts.map((p) => (
-                    <li key={p.key} className="flex items-center gap-2 text-[#417a5a] text-sm">✔ {p.key}</li>
+                    <li key={p.key} className="flex items-center gap-2 text-[#417a5a] text-xs md:text-sm">✔ {p.key}</li>
                   ))}
                 </ul>
                 <div className="text-xs font-semibold text-[#417a5a] mb-1">BONUSES INCLUDED:</div>
@@ -89,10 +89,10 @@ export default function GetStartedComponentThree({
                   ))}
                 </ul>
               </div>
-              <div className="flex flex-col items-center gap-2 min-w-55">
-                <p className="text-[#417a5a] text-sm text-center">Everything you need in one complete package</p>
+              <div className="flex flex-col items-center gap-2 min-w-0 w-full lg:min-w-55 lg:w-auto">
+                <p className="text-[#417a5a] text-xs md:text-sm text-center">Everything you need in one complete package</p>
                 <button
-                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-3 rounded-xl shadow-sm w-full ${selectedBundle ? 'ring-2 ring-[#417a5a]' : ''}`}
+                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-sm w-full text-sm md:text-base ${selectedBundle ? 'ring-2 ring-[#417a5a]' : ''}`}
                   onClick={() => {
                     if (selectedBundle) {
                       removeItem('Complete Licensing Bundle');
@@ -113,7 +113,7 @@ export default function GetStartedComponentThree({
                   {selectedBundle ? 'Selected' : 'Select Bundle'}
                 </button>
                 <button
-                  className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-6 py-2 rounded-xl shadow-sm w-full"
+                  className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-2 rounded-xl shadow-sm w-full text-sm md:text-base"
                   onClick={() => setBundleModalOpen(true)}
                 >
                   See What's Included
@@ -122,7 +122,7 @@ export default function GetStartedComponentThree({
               </div>
             </div>
             {/* Individual Products */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full">
               {individualProducts.map((p) => {
                 const isSelected = selectedProducts.includes(p.key);
                 const handleSelect = () => {
@@ -142,21 +142,21 @@ export default function GetStartedComponentThree({
                   }
                 };
                 return (
-                  <div key={p.key} className={`bg-white border ${isSelected ? 'border-[#417a5a] ring-2 ring-[#417a5a]' : 'border-[#eaffea]'} rounded-xl p-6 shadow-sm`}>
+                  <div key={p.key} className={`bg-white border ${isSelected ? 'border-[#417a5a] ring-2 ring-[#417a5a]' : 'border-[#eaffea]'} rounded-xl p-4 md:p-6 shadow-sm`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-[#417a5a]">{p.key}</span>
+                      <span className="font-semibold text-[#417a5a] text-sm md:text-base">{p.key}</span>
                       {p.popular && (
                         <span className="ml-2 bg-[#eaffea] text-[#417a5a] text-xs font-bold px-2 py-1 rounded-full">Popular</span>
                       )}
                     </div>
-                    <div className="text-[#417a5a] text-xs mb-4">{p.desc}</div>
-                    <div className="flex gap-2">
+                    <div className="text-[#417a5a] text-xs mb-3 md:mb-4">{p.desc}</div>
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <button
-                        className={`border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all ${isSelected ? 'bg-[#eaffea]' : 'bg-white'}`}
+                        className={`border border-[#417a5a] text-[#417a5a] font-semibold px-3 py-2 md:px-4 md:py-2 rounded-lg text-xs md:text-sm hover:bg-[#eaffea] transition-all ${isSelected ? 'bg-[#eaffea]' : 'bg-white'}`}
                         onClick={handleSelect}
                       >{isSelected ? 'Selected' : 'Select'}</button>
                       <button
-                        className="border border-[#417a5a] text-[#417a5a] font-semibold px-4 py-2 rounded-lg text-xs hover:bg-[#eaffea] transition-all"
+                        className="border border-[#417a5a] text-[#417a5a] font-semibold px-3 py-2 md:px-4 md:py-2 rounded-lg text-xs md:text-sm hover:bg-[#eaffea] transition-all"
                         onClick={() => {
                           setDetailsProduct(p);
                           setDetailsModalOpen(true);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Home,
   ClipboardList,
@@ -19,20 +20,24 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const programs = [
-  { title: "Assisted Living Facilities", icon: Home },
-  { title: "Nursing Facilities (SNF)", icon: ClipboardList },
-  { title: "Home Health Agencies", icon: HeartPulse },
-  { title: "Adult Day Care Programs", icon: Sun },
-  { title: "Hospice Programs", icon: HandHeart },
-  { title: "Child Care Facilities", icon: Baby },
-  { title: "Group Homes for Children", icon: Users },
-  { title: "Personal Home Care", icon: Activity },
-  { title: "Residential Care (DD)", icon: Heart },
-  { title: "Residential Treatment (Children)", icon: Shield },
+import { programCards } from "../data/shopData";
+
+// we keep icons inline since shopData doesn't need them
+const programs: { title: string; slug: string; icon: any }[] = [
+  { title: "Assisted Living Facilities", slug: programCards.find(p => p.title === "Assisted Living Facilities")?.slug || "", icon: Home },
+  { title: "Nursing Facilities (SNF)", slug: programCards.find(p => p.title === "Nursing Facilities (SNF)")?.slug || "", icon: ClipboardList },
+  { title: "Home Health Agencies", slug: programCards.find(p => p.title === "Home Health Agencies")?.slug || "", icon: HeartPulse },
+  { title: "Adult Day Care Programs", slug: programCards.find(p => p.title === "Adult Day Care Programs")?.slug || "", icon: Sun },
+  { title: "Hospice Programs", slug: programCards.find(p => p.title === "Hospice Programs")?.slug || "", icon: HandHeart },
+  { title: "Child Care Facilities", slug: programCards.find(p => p.title === "Child Care Facilities")?.slug || "", icon: Baby },
+  { title: "Group Homes for Children", slug: programCards.find(p => p.title === "Group Homes for Children")?.slug || "", icon: Users },
+  { title: "Personal Home Care", slug: programCards.find(p => p.title === "Personal Home Care")?.slug || "", icon: Activity },
+  { title: "Residential Care (DD)", slug: programCards.find(p => p.title === "Residential Care (DD)")?.slug || "", icon: Heart },
+  { title: "Residential Treatment (Children)", slug: programCards.find(p => p.title === "Residential Treatment (Children)")?.slug || "", icon: Shield },
 ];
 
 export default function ProgramTypes() {
+  const router = useRouter();
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -109,6 +114,7 @@ export default function ProgramTypes() {
               <div
                 key={index}
                 className="program-card bg-white border border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center transition-all duration-300 hover:shadow-xl hover:-translate-y-2 group cursor-pointer"
+                onClick={() => router.push(`/shop?programs=${program.slug}`)}
               >
                 {/* Icon */}
                 <div className="program-icon w-20 h-20 bg-[#E6ECE8] rounded-full flex items-center justify-center mb-6">

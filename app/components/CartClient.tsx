@@ -3,12 +3,61 @@ import React, { useState } from "react";
 import { useCart } from "./cart-context";
 import { Trash2, Lock, Zap, Shield, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 export default function CartClient() {
   const { items, removeItem, clearCart } = useCart();
   const [promo, setPromo] = useState("");
   const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
   // For demo, promo code does nothing
+
+  const handleRemoveItem = async (itemId: string, itemName: string) => {
+    const result = await Swal.fire({
+      title: 'Remove Item?',
+      text: `Are you sure you want to remove "${itemName}" from your cart?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, remove it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      removeItem(itemId);
+      Swal.fire({
+        title: 'Removed!',
+        text: 'Item has been removed from your cart.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+  };
+
+  const handleClearCart = async () => {
+    const result = await Swal.fire({
+      title: 'Clear Cart?',
+      text: 'Are you sure you want to remove all items from your cart?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, clear cart!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      clearCart();
+      Swal.fire({
+        title: 'Cleared!',
+        text: 'All items have been removed from your cart.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -21,7 +70,7 @@ export default function CartClient() {
         ) : (
           <div className="space-y-6">
             {items.map((item) => (
-              <div key={item.id} className="flex items-center gap-6 bg-white rounded-xl border p-6">
+              <div key={item.id} className="flex md:items-center md:flex-row flex-col gap-6 bg-white rounded-xl border p-6">
                 <div className="bg-green-800 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-xl">
                   {item.state ? item.state.slice(0, 2).toUpperCase() : item.name.slice(0, 2).toUpperCase()}
                 </div>
@@ -36,13 +85,13 @@ export default function CartClient() {
                     <span className="text-2xl font-bold text-gray-900">${item.price}</span>
                   </div>
                 </div>
-                <button className="flex flex-col items-center text-red-600 hover:text-red-800 text-sm" onClick={() => removeItem(item.id)}>
+                <button className="flex flex-col items-center text-red-600 hover:text-red-800 text-sm" onClick={() => handleRemoveItem(item.id, item.name)}>
                   <Trash2 className="mb-1" />
                   Remove
                 </button>
               </div>
             ))}
-            <button className="text-red-600 hover:text-red-800 text-sm mt-2 ml-auto block" onClick={clearCart}>
+            <button className="text-red-600 hover:text-red-800 text-sm mt-2 ml-auto block" onClick={handleClearCart}>
               Clear Cart
             </button>
           </div>

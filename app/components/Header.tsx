@@ -6,13 +6,15 @@ const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Search, ShoppingCart } from "lucide-react";
+import Image from "next/image";
+import LogoImg from "@/public/assets/images/logo-dark-bg.png";
 
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/states", label: "By State" },
   { href: "/course", label: "Course" },
-  // { href: "/about", label: "About" },
+  { href: "/about", label: "About" },
   // { href: "/guides", label: "Guides" },
 ];
 
@@ -31,10 +33,10 @@ const Header = () => {
       <div className="max-w-7xl mx-auto  flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 md:gap-3">
-          <img
-            src="https://facility-launchkit.lovable.app/assets/alf-launch-logo-B5RpnBeN.png"
+          <Image
+            src={LogoImg}
             alt="Logo"
-            className="w-8 h-8 md:w-10 md:h-10 bg-black rounded"
+            className="w-8 h-8 md:w-10 md:h-10 rounded"
           />
           <span className="text-base sm:text-lg md:text-2xl font-semibold text-gray-800 whitespace-nowrap">
             Care Licensing{" "}
@@ -78,10 +80,6 @@ const Header = () => {
               <span className="absolute -top-1 -right-1 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {cartCount}
               </span>
-            )}
-            {/* Dropdown CartModal */}
-            {cartOpen && (
-              <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
             )}
           </div>
 
@@ -136,10 +134,17 @@ const Header = () => {
             <div className="flex items-center gap-6 mt-4">
               <Search size={22} className="text-black" />
               <div className="relative">
-                <ShoppingCart size={22} className="text-black" />
-                <span className="absolute -top-2 -right-2 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  1
-                </span>
+                <button
+                  className="p-2 rounded hover:bg-gray-100 transition"
+                  onClick={() => setCartOpen((v) => !v)}
+                >
+                  <ShoppingCart size={22} className="text-black" />
+                </button>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-green-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -159,6 +164,11 @@ const Header = () => {
             className="fixed inset-0 bg-black/40 z-30"
             onClick={() => setMenuOpen(false)}
           />
+        )}
+
+        {/* Cart Modal */}
+        {cartOpen && (
+          <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
         )}
       </div>
     </header>

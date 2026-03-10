@@ -22,11 +22,11 @@ const GetStartedSidebar: React.FC<GetStartedSidebarProps> = ({
   disableType = false,
 }) => {
   return (
-    <aside className="w-64 bg-white rounded-xl border border-[#eaffea] p-6 flex flex-col shadow-sm">
-      <div className="mb-4">
+    <aside className="w-full lg:w-64 bg-white rounded-xl border border-[#eaffea] p-4 md:p-6 flex flex-col shadow-sm">
+      <div className="mb-3 md:mb-4">
         <span className="block text-xs text-[#417a5a] font-semibold mb-2">STATE</span>
         <select
-          className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white"
+          className="w-full border border-[#b6ff7a] rounded-lg px-3 py-2 text-[#417a5a] font-semibold bg-white text-sm md:text-base"
           value={stateNames[selectedState]}
           onChange={e => {
             if (onStateChange && !disableState) {
@@ -61,7 +61,7 @@ const GetStartedSidebar: React.FC<GetStartedSidebarProps> = ({
           })}
         </ul>
       </div>
-      <div className="mt-8">
+      <div className="mt-6 md:mt-8">
         <span className="block text-xs text-[#417a5a] font-semibold mb-2">Current selection</span>
         <div className="text-[#417a5a] text-sm font-bold">{stateNames[selectedState]}</div>
         <div className="text-[#417a5a] text-xs">{selectedType}</div>

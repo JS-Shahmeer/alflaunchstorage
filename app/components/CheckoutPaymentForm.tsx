@@ -100,8 +100,8 @@ export default function CheckoutPaymentForm({
   };
 
   return (
-    <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-xl">
-      <h2 className="text-2xl font-bold mb-6 text-black">Payment</h2>
+    <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-md w-full lg:max-w-xl">
+      <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-black">Payment</h2>
 
       {/* Stripe Card Box */}
       {/* <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 mb-6 bg-gray-50 text-center">
@@ -115,14 +115,14 @@ export default function CheckoutPaymentForm({
       </div> */}
 
       {/* Card Element */}
-      <form onSubmit={handlePayment} className="space-y-4">
-        <div className="border border-gray-300 rounded-lg p-4 bg-white">
+      <form onSubmit={handlePayment} className="space-y-3 md:space-y-4">
+        <div className="border border-gray-300 rounded-lg p-3 md:p-4 bg-white">
           <CardElement
             onChange={handleCardChange}
             options={{
               style: {
                 base: {
-                  fontSize: "16px",
+                  fontSize: "14px",
                   color: "#424770",
                   "::placeholder": {
                     color: "#aab7c4",
@@ -135,33 +135,33 @@ export default function CheckoutPaymentForm({
             }}
           />
         </div>
-        {cardError && <p className="text-red-500 text-sm">{cardError}</p>}
+        {cardError && <p className="text-red-500 text-xs md:text-sm">{cardError}</p>}
 
         {/* Security Message */}
-        <div className="flex items-center gap-2 text-green-800 mb-4">
-          <Lock size={16} />
-          <span className="text-sm font-medium">Your payment information is secure and encrypted</span>
+        <div className="flex items-center gap-2 text-green-800 mb-3 md:mb-4">
+          <Lock size={14} className="md:w-4 md:h-4" />
+          <span className="text-xs md:text-sm font-medium">Your payment information is secure and encrypted</span>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
+            <p className="text-red-700 text-xs md:text-sm">{error}</p>
           </div>
         )}
 
         {/* Disclaimer */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
           <p className="text-xs text-orange-800">
             <span className="font-semibold">Disclaimer:</span> This product is an informational resource designed to assist with the licensing and startup process for care facilities. It does not constitute legal, financial, or professional compliance advice. The purchaser is solely responsible for verifying all information with applicable state and local regulatory agencies. Care Licensing Solutions makes no guarantees regarding licensing approval or business outcomes. All sales are final.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center gap-3 flex-col sm:flex-row">
           <button
             type="button"
-            className="text-green-700 font-semibold cursor-pointer hover:text-green-900 flex items-center gap-1"
+            className="text-green-700 font-semibold cursor-pointer hover:text-green-900 flex items-center gap-1 text-sm md:text-base"
             onClick={onBack}
             disabled={loading || parentLoading}
           >
@@ -170,12 +170,12 @@ export default function CheckoutPaymentForm({
           </button>
           <button
             type="submit"
-            className={`bg-green-800 hover:bg-green-900 text-white font-semibold py-3 rounded-lg px-8 flex items-center gap-2 transition ${
+            className={`bg-green-800 hover:bg-green-900 text-white font-semibold py-2 md:py-3 px-4 md:px-8 rounded-lg flex items-center gap-2 transition text-sm md:text-base w-full sm:w-auto justify-center ${ 
               loading || parentLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
             disabled={loading || parentLoading || !stripe}
           >
-            {loading ? <Loader className="animate-spin" size={18} /> : null}
+            {loading ? <Loader className="animate-spin" size={16} /> : null}
             Pay ${total.toFixed(2)}
           </button>
         </div>

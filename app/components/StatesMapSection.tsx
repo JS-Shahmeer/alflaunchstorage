@@ -86,7 +86,7 @@ export default function StatesMapSection() {
 
   return (
     <section className="flex flex-col items-center justify-center py-12 bg-white">
-      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg border border-[#b6ff7a] mx-auto p-8 flex flex-col items-center">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg border border-[#b6ff7a] mx-auto p-8 flex flex-col items-center">
         <div className="mb-6 flex items-center gap-2">
           <span className="inline-block bg-[#b6ff7a] text-[#417a5a] font-semibold text-sm px-4 py-1 rounded-full">
             <HiLocationMarker size={16} />

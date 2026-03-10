@@ -39,10 +39,10 @@ export default function USAMap({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto aspect-[16/9]">
+    <div className="w-full max-w-7xl mx-auto aspect-[16/9]">
       <ComposableMap
         projection="geoAlbersUsa"
-        projectionConfig={{ scale: 1250 }}   // Bigger scale
+        projectionConfig={{ scale: 1300 }}   // Even bigger scale for larger visual
         style={{ width: "100%", height: "100%" }}
       >
         <Geographies geography={topoUrl}>
