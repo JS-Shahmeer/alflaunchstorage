@@ -1,38 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Mail, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
 import LogoImg from "@/public/assets/images/logo-dark-bg.png";
 import Image from "next/image";
 
-gsap.registerPlugin(ScrollTrigger);
-
 export default function Footer() {
-  const root = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [email, setEmail] = useState("");
   const [toast, setToast] = useState<string | null>(null);
-
-  // GSAP
-  useEffect(() => {
-    if (!root.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".footer-col",
-        { autoAlpha: 0, y: 40 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          stagger: 0.15,
-          duration: 0.8,
-          scrollTrigger: { trigger: root.current, start: "top 85%" },
-        },
-      );
-    }, root);
-    return () => ctx.revert();
-  }, []);
 
   // floating particles
   useEffect(() => {
@@ -73,10 +49,7 @@ export default function Footer() {
     "relative w-fit text-white/80 hover:text-white transition after:absolute after:left-0 after:-bottom-0.5 after:h-px after:w-0 after:bg-white after:transition-all hover:after:w-full";
 
   return (
-    <footer
-      ref={root}
-      className="relative bg-[#16563a] text-white pt-16 pb-10 overflow-hidden"
-    >
+    <footer className="relative bg-[#16563a] text-white pt-16 pb-10 overflow-hidden">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 opacity-20 pointer-events-none"
