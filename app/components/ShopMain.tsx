@@ -26,20 +26,36 @@ export default function ShopMain() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paramProgram = params.get("programs") || "";
+    const paramSearch = params.get("search") || "";
+    const paramState = params.get("state") || "";
     if (paramProgram) {
       setSelectedProgramSlug(paramProgram);
     }
+    if (paramSearch) {
+      setSearch(paramSearch);
+    }
+    if (paramState) {
+      setSelectedState(paramState);
+    }
   }, []);
 
-  // keep the URL in sync when user clears or selects a program filter
+  // keep the URL in sync when filters change
   useEffect(() => {
-    const base = "/shop";
+    const params = new URLSearchParams();
     if (selectedProgramSlug) {
-      router.replace(`${base}?programs=${selectedProgramSlug}`);
-    } else {
-      router.replace(base);
+      params.set("programs", selectedProgramSlug);
     }
-  }, [selectedProgramSlug, router]);
+    if (search) {
+      params.set("search", search);
+    }
+    if (selectedState) {
+      params.set("state", selectedState);
+    }
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `/shop?${queryString}` : "/shop";
+    router.replace(newUrl);
+  }, [selectedProgramSlug, search, selectedState, router]);
   // Filter logic
   let filteredProducts = allProducts.filter((p) => {
     const matchesState = !selectedState || p.code === selectedState;

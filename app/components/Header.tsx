@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { useCart } from "./cart-context";
 import dynamic from "next/dynamic";
 const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
+const SearchDropdown = dynamic(() => import("./SearchDropdown"), { ssr: false });
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import LogoImg from "@/public/assets/images/logo-dark-bg.png";
@@ -21,9 +22,11 @@ const navLinks = [
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { items } = useCart();
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const pathname = usePathname();
+  const router = useRouter();
 
   const linkClass =
     "relative w-fit text-gray-700 hover:text-green-700 transition after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-green-700 after:transition-all hover:after:w-full";
@@ -68,12 +71,16 @@ const Header = () => {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-4">
-          <button className="p-2 rounded hover:bg-gray-100 transition">
+          {/* Search */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
+          >
             <Search size={20} className="text-black" />
           </button>
 
           <div className="relative">
-            <button className="p-2 rounded hover:bg-gray-100 transition" onClick={() => setCartOpen((v) => !v)}>
+            <button className="p-2 rounded hover:bg-gray-100 transition cursor-pointer" onClick={() => setCartOpen((v) => !v)}>
               <ShoppingCart size={20} className="text-black" />
             </button>
             {cartCount > 0 && (
@@ -130,9 +137,19 @@ const Header = () => {
               );
             })}
 
-            {/* Mobile Icons */}
+            {/* Mobile Search */}
+            <div className="mt-4">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="flex items-center gap-2 w-full p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition"
+              >
+                <Search size={18} className="text-gray-400" />
+                <span className="text-gray-600">Search...</span>
+              </button>
+            </div>
+
+            {/* Mobile Cart */}
             <div className="flex items-center gap-6 mt-4">
-              <Search size={22} className="text-black" />
               <div className="relative">
                 <button
                   className="p-2 rounded hover:bg-gray-100 transition"
@@ -170,6 +187,16 @@ const Header = () => {
         {cartOpen && (
           <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
         )}
+
+        {/* Search Dropdown (Global) */}
+        <SearchDropdown
+          isOpen={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          onNavigate={(url) => {
+            router.push(url);
+            setMenuOpen(false); // Close mobile menu if open
+          }}
+        />
       </div>
     </header>
   );
