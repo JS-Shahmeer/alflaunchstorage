@@ -10,13 +10,15 @@ import Link from "next/link";
 
 gsap.registerPlugin(ScrollTrigger);
 
+import { ReactNode } from "react";
+
 interface CardProps {
   title: string;
   subtitle: string;
   fileType: string;
   fileMeta: string;
   items?: string[];
-  highlightBox?: boolean;
+  highlightBox?: ReactNode;
   icon: LucideIcon;
 }
 
@@ -87,12 +89,7 @@ function FeatureCard({
 
             {highlightBox && (
               <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-neutral-700">
-                <strong>Why it Matters</strong>
-                <p className="mt-2">
-                  This isn't a generic industry overview—it's state-specific,
-                  program-specific intelligence with reimbursement rates and
-                  regulatory citations.
-                </p>
+                {highlightBox}
               </div>
             )}
           </div>
@@ -155,41 +152,77 @@ export default function BundleFeatures() {
             fileMeta="50–60 Pages"
             icon={BarChart3}
             items={[
-              "Executive Summary with key indicators",
-              "Licensed Facilities overview",
-              "Startup feasibility analysis",
-              "Financial 5-Year Forecast",
-              "Market & Systems Landscape",
-              "Strategic Recommendations",
+              "Executive Summary with key market indicators, wait lists, and funding commitments",
+              "Service Model Definition covering official program name, waiver authority, and regulatory classification",
+              "Feasibility & Licensing pathway with phase-by-phase application process",
+              "Automated & Self-Requirement: including education, certification, and training mandates",
+              "Funding & Medicaid Method with reimbursement rates, billing policy, and MCO contracting",
+              "Referral & Placement Pipeline showing primary referral sources and introducing development partners",
+              "Program Design & Operations covering capacity planning, staffing structure, and service delivery",
+              "Market & System Trends with competitive analysis and workforce development insights",
+              "Target Cost Analysis with detailed financial projection and break-even modeling",
+              "Strategic Recommendations with implementation timeline",
             ]}
-            highlightBox
+            highlightBox={
+              <>
+                <strong>Why it Matters</strong>
+                <p className="mt-2">
+                  This isn't a generic industry overview—it's state-specific, program-specific intelligence with current reimbursement rates, real agency contacts, and verified regulatory citations. You'll understand exactly what the opportunity looks like before you commit.
+                </p>
+              </>
+            }
           />
 
           <FeatureCard
             title="Licensing Documentation Checklist"
-            subtitle="Never miss a requirement."
+            subtitle="Never miss a requirement, pass on the first attempt!"
             fileType="Excel"
             fileMeta="15+ line items"
             icon={ClipboardList}
             items={[
-              "Application Requirements",
-              "Entity Registration",
-              "Compliance Review",
-              "Inspection Prep",
+              "Jurisdictional Requirements (business formation, zoning, preliminary approvals)",
+              "Owner/Applicant Qualifications (education, experience, background clearances)",
+              "Compliance Attestation (policy disclosure, staff checks, inspection prep)",
+              "Staffing Documentation (credentials, training, org chart, personnel files)",
+              "Physical Location & Readiness (site plan, safety, environmental health)",
+              "Program & Service Delivery Systems (implementation plan, program model)",
+              "Credentialing & Medicaid Enrollment (if applicable to your market)",
+              "Pre-Inspection Readiness (what surveyors look for)",
             ]}
+            highlightBox={
+              <>
+                <strong>Why it Matters</strong>
+                <p className="mt-2">
+                  This checklist approach gives you a single clear list of what to submit—each built for it by state. Every item is mapped to the actual regulation with reform numbers and agency contacts included. Work through it sequentially and your application is complete.
+                </p>
+              </>
+            }
           />
 
           <FeatureCard
             title="Submission-Ready Policy & Procedure Manual"
-            subtitle="Policies regulators expect to see."
+            subtitle="The policies regulators expect to see, already written!"
             fileType="Word Doc"
             fileMeta="Fully Editable"
             icon={FileText}
             items={[
-              "HR Policies",
-              "Clinical Procedures",
-              "Risk Management Protocols",
+              "Administrative Policies (governance, organizational structure, compliance oversight)",
+              "Client Rights & Grievance Procedures",
+              "Admission, Retention & Discharge Policies",
+              "Service Delivery & Care Planning Protocols",
+              "Health & Safety Procedures (infection control, emergency response, incident reporting)",
+              "Medication & Records Management (documentation, performance management)",
+              "Customization to licensed-keeping standards",
+              "All policies based on state/regulatory template & program type",
             ]}
+            highlightBox={
+              <>
+                <strong>Why it Matters</strong>
+                <p className="mt-2">
+                  Banks, investors, and regulators require policy manual before they’ll approve your licensure—and they always look for what’s listed in this box. This manual is built from actual approved applications, with the latest state-specific regulatory language, and ready to customize with your organization’s details.
+                </p>
+              </>
+            }
           />
 
           <FeatureCard
@@ -199,10 +232,21 @@ export default function BundleFeatures() {
             fileMeta="12-Month Projection"
             icon={LineChart}
             items={[
-              "Revenue Forecast",
-              "Expense Breakdown",
-              "Cash Flow Projection",
+              "Startup Cost Breakdown (licensing, insurance, equipment, buildout, working capital)",
+              "Monthly Operating Expense Projections (staffing, utilities, rent, supplies)",
+              "Revenue Modeling by Payer Mix (Medicaid rates, private pay, Medicare if applicable)",
+              "Variable & Fixed Cost Analysis (by line item)",
+              "Cash Flow & Breakeven Summary (monthly by position)",
+              "Customizable for your specific rates in your market",
             ]}
+            highlightBox={
+              <>
+                <strong>Why it Matters</strong>
+                <p className="mt-2">
+                  This isn’t just a template with blank numbers. It’s built with the numbers that matter, for your state and your program. Plug in your assumptions and you have a presentation-ready financial model.
+                </p>
+              </>
+            }
           />
         </div>
 

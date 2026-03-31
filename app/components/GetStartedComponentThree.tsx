@@ -218,6 +218,7 @@ export default function GetStartedComponentThree({
         features={detailsProduct.features || [detailsProduct.desc]}
         productKey={detailsProduct.key}
         productDesc={detailsProduct.desc}
+        productTitle={detailsProduct.key || detailsProduct.title || ''}
       />
     )}
     </>

@@ -108,7 +108,7 @@ const CoursePageHeroSection = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
             <a
-              href="/shop"
+              href="/states"
               ref={(el) => {
                 if (el) staggerRefs.current[0] = el;
               }}
