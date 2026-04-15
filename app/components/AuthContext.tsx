@@ -44,10 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, metadata?: any) => {
     if (!supabase) return { data: null, error: { message: 'Authentication not configured' } };
+    const redirectTo = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: redirectTo,
         data: metadata,
       },
     });
