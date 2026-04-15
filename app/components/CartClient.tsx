@@ -6,8 +6,17 @@ import Link from "next/link";
 import Swal from "sweetalert2";
 
 export default function CartClient() {
-  const { items, removeItem, clearCart } = useCart();
+  const { items, loaded, removeItem, clearCart } = useCart();
   const [promo, setPromo] = useState("");
+
+  if (!loaded) {
+    return (
+      <div className="min-h-[300px] bg-white rounded-xl shadow p-8 text-center text-gray-500">
+        Loading cart...
+      </div>
+    );
+  }
+
   const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
   // For demo, promo code does nothing
 

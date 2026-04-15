@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { useToast } from "./SimpleToast";
 
 export type CartItem = {
@@ -13,6 +13,7 @@ export type CartItem = {
 
 type CartContextType = {
   items: CartItem[];
+  loaded: boolean;
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
@@ -27,23 +28,32 @@ export function useCart() {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem("cart-items");
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loaded, setLoaded] = useState(false);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const isHydrated = useRef(false);
   const toast = useToast();
 
-  // Load cart from localStorage on mount
+  // Hydration marker for localStorage saves
   useEffect(() => {
-    const stored = localStorage.getItem("cart-items");
-    if (stored) {
-      try {
-        setItems(JSON.parse(stored));
-      } catch {}
-    }
+    isHydrated.current = true;
+    setLoaded(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes after hydration
   useEffect(() => {
-    localStorage.setItem("cart-items", JSON.stringify(items));
+    if (!isHydrated.current) return;
+    window.localStorage.setItem("cart-items", JSON.stringify(items));
   }, [items]);
 
   function addItem(item: CartItem) {
@@ -77,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart }}>
+    <CartContext.Provider value={{ items, loaded, addItem, removeItem, clearCart }}>
       {children}
     </CartContext.Provider>
   );

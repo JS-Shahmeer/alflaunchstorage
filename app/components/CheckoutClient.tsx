@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Check } from "lucide-react";
+import { Check, LogIn } from "lucide-react";
 import { useCart } from "../components/cart-context";
+import { useAuth } from "../components/AuthContext";
+import AuthModal from "./AuthModal";
 import CheckoutCustomerInfo from "./CheckoutCustomerInfo";
 import CheckoutPayment from "./CheckoutPayment";
 import CheckoutPaymentConfirmation from "./CheckoutPaymentConfirmation";
@@ -47,8 +49,10 @@ function Stepper({ step }: { step: number }) {
 }
 
 export default function CheckoutClient() {
-  const { items, clearCart } = useCart();
+  const { items, loaded, clearCart } = useCart();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(2);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [form, setForm] = useState({
     email: "",
     firstName: "",
@@ -230,6 +234,38 @@ export default function CheckoutClient() {
     }
   }
 
+  if (!loaded || authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-md">
+          <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <LogIn size={32} className="text-blue-600" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Authentication Required</h2>
+          <p className="text-gray-600 mb-6">Please log in or sign up to proceed with checkout</p>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+          >
+            Login / Sign Up
+          </button>
+        </div>
+        {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
+      </div>
+    );
+  }
+
+  // Rest of the component continues...
+
   const subtotal = items.reduce(
     (sum, item) => sum + item.price * (item.quantity || 1),
     0,
@@ -341,6 +377,9 @@ export default function CheckoutClient() {
             onSuccess={handlePaymentSuccess}
             onBack={handlePaymentBack}
             loading={loading}
+            items={items}
+            discountCode={discountCode}
+            customerInfo={form}
           />
         )}
         {step === 4 && (

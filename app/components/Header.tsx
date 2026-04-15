@@ -4,11 +4,14 @@ import { useCart } from "./cart-context";
 import dynamic from "next/dynamic";
 const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
 const SearchDropdown = dynamic(() => import("./SearchDropdown"), { ssr: false });
+const AuthModal = dynamic(() => import("./AuthModal"), { ssr: false });
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search, ShoppingCart } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User, LogOut } from "lucide-react";
 import Image from "next/image";
 import LogoImg from "@/public/assets/images/logo-dark-bg.png";
+import { useAuth } from "./AuthContext";
+import { useToast } from "./SimpleToast";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -23,10 +26,22 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const { items } = useCart();
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const pathname = usePathname();
   const router = useRouter();
+  const { user, signOut } = useAuth();
+  const toast = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.show('Error signing out');
+    } else {
+      toast.show('Signed out successfully');
+    }
+  };
 
   const linkClass =
     "relative w-fit text-gray-700 hover:text-green-700 transition after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-green-700 after:transition-all hover:after:w-full";
@@ -90,6 +105,30 @@ const Header = () => {
             )}
           </div>
 
+          {/* Auth Buttons */}
+          {user ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <User size={16} />
+                <span>{user.user_metadata?.first_name || user.email}</span>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut size={16} className="text-gray-600" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAuthOpen(true)}
+              className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition"
+            >
+              Sign In
+            </button>
+          )}
+
           <a
             href="/states"
             className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition"
@@ -148,8 +187,8 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Mobile Cart */}
-            <div className="flex items-center gap-6 mt-4">
+            {/* Mobile Cart and Auth */}
+            <div className="flex items-center justify-between mt-4">
               <div className="relative">
                 <button
                   className="p-2 rounded hover:bg-gray-100 transition"
@@ -163,6 +202,29 @@ const Header = () => {
                   </span>
                 )}
               </div>
+
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <User size={16} />
+                    <span className="truncate max-w-32">{user.user_metadata?.first_name || user.email}</span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut size={16} className="text-gray-600" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAuthOpen(true)}
+                  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
 
             <a
@@ -196,6 +258,12 @@ const Header = () => {
             router.push(url);
             setMenuOpen(false); // Close mobile menu if open
           }}
+        />
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={authOpen}
+          onClose={() => setAuthOpen(false)}
         />
       </div>
     </header>
