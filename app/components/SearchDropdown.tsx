@@ -298,7 +298,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, onClose, onNavi
                           handleResultClick(result);
                         }}
                         className={`w-full text-left px-3 py-2 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 ${
-                          isSelected ? "bg-blue-50" : ""
+                          isSelected ? "bg-green-50" : ""
                         }`}
                       >
                         <div className="flex items-start gap-3">

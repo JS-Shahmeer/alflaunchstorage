@@ -3,6 +3,7 @@ import React from "react";
 import { useCart } from "./cart-context";
 import { X } from "lucide-react";
 import Link from "next/link";
+import { BsCart } from "react-icons/bs";
 
 export default function CartModal({
   open,
@@ -23,7 +24,7 @@ export default function CartModal({
   return (
     <div className="absolute right-0 top-full mt-2 z-50 w-80 max-w-xs bg-white rounded-xl shadow-xl p-6 animate-fadeIn flex flex-col border border-gray-200">
       <button
-        className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+        className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 cursor-pointer"
         onClick={onClose}
         aria-label="Close"
       >
@@ -32,7 +33,7 @@ export default function CartModal({
       <h2 className="text-lg font-semibold mb-4 text-black">Shopping Cart</h2>
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8">
-          <span className="text-4xl mb-2">🛍️</span>
+          <span className="text-4xl mb-2 text-green-700"> <BsCart /> </span>
           <p className="text-gray-500 mb-4">Your cart is empty</p>
           <a
             className="border border-green-700 text-green-800 font-semibold px-6 py-2 rounded-lg hover:bg-green-50 transition"

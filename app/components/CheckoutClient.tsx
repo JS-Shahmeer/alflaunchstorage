@@ -247,8 +247,8 @@ export default function CheckoutClient() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-md">
-          <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <LogIn size={32} className="text-blue-600" />
+          <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <LogIn size={32} className="text-green-600" />
           </div>
           <h2 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Authentication Required</h2>
           <p className="text-gray-600 mb-6">Please log in or sign up to proceed with checkout</p>

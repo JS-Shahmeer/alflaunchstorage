@@ -48,9 +48,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-        <h2 className="text-2xl font-bold mb-6 text-center">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
+        <button
+          onClick={onClose}
+          className="absolute -top-2 -right-2 shadow-2xl text-white bg-green-800 hover:bg-green-900 transition-all w-8 h-8 rounded-full cursor-pointer"
+        >
+          ✕
+        </button>
+        <h2 className="text-2xl font-bold mb-6 text-center text-black">
           {isLogin ? 'Sign In' : 'Sign Up'}
         </h2>
 
@@ -65,7 +71,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
                   required
                 />
               </div>
@@ -77,7 +83,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
                   required
                 />
               </div>
@@ -92,7 +98,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               required
             />
           </div>
@@ -105,7 +111,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               required
               minLength={6}
             />
@@ -114,7 +120,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-800 text-white py-2 px-4 rounded-md hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+            className="w-full bg-green-800 cursor-pointer text-white py-2 px-4 rounded-md hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
           >
             {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
           </button>
@@ -123,18 +129,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <div className="mt-4 text-center">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-green-600 hover:text-green-800 text-sm"
+            className="text-green-600 hover:text-green-800 text-sm cursor-pointer"
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
+        
       </div>
     </div>
   );

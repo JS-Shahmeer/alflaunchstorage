@@ -23,19 +23,13 @@ export default function AboutPageHero() {
       {/* subtle pattern */}
       <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.08] bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] [background-size:22px_22px]" />
       <div className="relative z-10 max-w-4xl mx-auto px-6 flex flex-col items-center">
-        <span
-          ref={badgeRef}
-          className="bg-[#b6ff7a] text-[#417a5a] font-semibold text-sm px-5 py-2 rounded-full mb-6 mt-2 shadow"
-        >
+        <span className="bg-[#b6ff7a] text-[#417a5a] font-semibold text-sm px-5 py-2 rounded-full mb-6 mt-2 shadow">
           About Us
         </span>
-        <h1 ref={headingRef} className="text-3xl md:text-4xl font-bold mb-3">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">
           Empowering Care Business Entrepreneurs
         </h1>
-        <p
-          ref={subheadingRef}
-          className="md:text-lg text-base text-white/90 max-w-2xl mx-auto"
-        >
+        <p className="md:text-lg text-base text-white/90 max-w-2xl mx-auto">
           We've helped over 500 care business owners navigate the complex world
           of healthcare licensing with confidence.
         </p>
