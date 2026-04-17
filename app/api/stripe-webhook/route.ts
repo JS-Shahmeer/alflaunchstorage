@@ -181,6 +181,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
         .eq('id', userId);
     }
 
+    const skoolCourseIds = enrichedItems
+      .map((item) => item.skool_course_id)
+      .filter((id) => id) as string[];
+
     // Send data to Zapier webhook
     await sendToZapier({
       event: 'checkout.session.completed',
@@ -191,6 +195,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       customer_last_name: session.customer_details?.name?.split(' ').slice(1).join(' ') || customerInfo.lastName || null,
       customer_name: session.customer_details?.name || `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
       products: enrichedItems,
+      skool_course_ids: skoolCourseIds,
+      skool_course_ids_string: skoolCourseIds.join(', '),
       total_amount: total,
       currency: session.currency || 'usd',
       discount_code: discountCode || null,
