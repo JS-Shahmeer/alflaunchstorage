@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:products": "node seed-products.js"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
@@ -16,6 +17,7 @@
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.101.1",
     "d3-geo": "^3.1.1",
+    "dotenv": "^17.4.2",
     "gsap": "^3.14.2",
     "lucide-react": "^0.574.0",
     "next": "16.1.6",
@@ -34,6 +36,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

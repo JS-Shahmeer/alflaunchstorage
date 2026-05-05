@@ -1,45 +1,195 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/utils/supabase';
 
 interface AuthContextType {
   user: User | null;
+  profile: any | null;
+  isAdmin: boolean;
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, metadata?: any) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<any>;
+  updateProfile: (updates: {
+    first_name?: string | null;
+    last_name?: string | null;
+  }) => Promise<any>;
+  profileStatus: 'idle' | 'loading' | 'success' | 'failed';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileStatus, setProfileStatus] = useState<'idle' | 'loading' | 'success' | 'failed'>('idle');
+  const userIdRef = useRef<string | null>(null);
+
+  const loadProfile = async (userId: string | null, retryCount = 0, force = false) => {
+    if (!supabase || !userId) {
+      setProfile(null);
+      setProfileStatus('success');
+      return;
+    }
+
+    // Check if we already have a successful profile for this user
+    const cachedProfileKey = `admin-profile-${userId}`;
+    const cachedProfile = sessionStorage.getItem(cachedProfileKey);
+    if (!force && cachedProfile) {
+      try {
+        const parsed = JSON.parse(cachedProfile);
+        setProfile(parsed);
+        setProfileStatus('success');
+        return;
+      } catch (e) {
+        // Invalid cache, continue with load
+      }
+    }
+
+    setProfileStatus('loading');
+
+    try {
+      const profilePromise = supabase
+        .from('profiles')
+        .select('first_name,last_name,is_admin')
+        .eq('id', userId)
+        .single();
+
+      const timeoutMs = retryCount === 0 ? 10000 : 6000;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile load timeout')), timeoutMs)
+      );
+
+      const { data, error } = (await Promise.race([
+        profilePromise,
+        timeoutPromise,
+      ])) as any;
+
+      if (error) {
+        const isNotFoundError =
+          error?.message?.includes('No rows found') ||
+          error?.message?.includes('Could not find') ||
+          error?.details?.includes('Results contain 0 rows');
+
+        if (isNotFoundError) {
+          setProfile(null);
+          setProfileStatus('success');
+          sessionStorage.removeItem(cachedProfileKey);
+          return;
+        }
+
+        if (retryCount < 2) {
+          console.warn('Profile load error, retrying:', error.message);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          return loadProfile(userId, retryCount + 1, force);
+        }
+
+        console.warn('Unable to load profile after retry:', error.message);
+        setProfile(null);
+        setProfileStatus('failed');
+        sessionStorage.removeItem(cachedProfileKey);
+        return;
+      }
+
+      setProfile(data ?? null);
+      setProfileStatus('success');
+      sessionStorage.setItem(cachedProfileKey, JSON.stringify(data ?? null));
+    } catch (err: any) {
+      if (retryCount < 2 && err?.message === 'Profile load timeout') {
+        console.warn('Profile load timeout, retrying:', err.message);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return loadProfile(userId, retryCount + 1, force);
+      }
+
+      console.warn('Profile load error:', err?.message);
+      setProfile(null);
+      setProfileStatus('failed');
+      sessionStorage.removeItem(`admin-profile-${userId}`);
+    }
+  };
 
   useEffect(() => {
-    if (!supabase) return;
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const supabaseClient = supabase;
+    if (!supabaseClient) {
       setLoading(false);
-    });
+      return;
+    }
 
-    // Listen for auth changes
+    let isMounted = true;
+
+    const initialize = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        const currentUserId = session?.user?.id ?? null;
+        userIdRef.current = currentUserId;
+
+        if (currentUserId) {
+          await loadProfile(currentUserId);
+        } else {
+          setProfile(null);
+          setProfileStatus('success');
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (isMounted) {
+          setProfile(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initialize();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
+      const previousUserId = userIdRef.current;
+      const newUserId = session?.user?.id ?? null;
+      
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      userIdRef.current = newUserId;
+      
+      if (newUserId) {
+        const shouldLoadProfile = event === 'SIGNED_IN' || previousUserId !== newUserId;
+        if (shouldLoadProfile) {
+          await loadProfile(newUserId);
+        }
+      } else {
+        setProfile(null);
+        setProfileStatus('success');
+        if (previousUserId) {
+          sessionStorage.removeItem(`admin-profile-${previousUserId}`);
+        }
+      }
+      
+      if (isMounted) {
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, metadata?: any) => {
@@ -67,17 +217,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return { error: { message: 'Authentication not configured' } };
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    
+    // Clear local state first
+    setProfile(null);
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+    setProfileStatus('success');
+    userIdRef.current = null;
+    
+    // Clear cached profile
+    if (user?.id) {
+      sessionStorage.removeItem(`admin-profile-${user.id}`);
+    }
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error: any) {
+      return { error };
+    }
+  };
+
+  const updateProfile = async (updates: {
+    first_name?: string | null;
+    last_name?: string | null;
+  }) => {
+    if (!supabase || !user) {
+      return { data: null, error: { message: 'Authentication not configured' } };
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select('first_name,last_name,is_admin')
+      .single();
+
+    if (!error && data) {
+      const updatedProfile = { ...profile, ...data };
+      setProfile(updatedProfile);
+      if (user?.id) {
+        sessionStorage.setItem(`admin-profile-${user.id}`, JSON.stringify(updatedProfile));
+      }
+    }
+
+    return { data, error };
   };
 
   const value = {
     user,
+    profile,
+    isAdmin: Boolean(profile?.is_admin),
     session,
     loading,
+    profileStatus,
     signUp,
     signIn,
     signOut,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

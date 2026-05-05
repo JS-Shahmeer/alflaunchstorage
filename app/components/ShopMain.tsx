@@ -3,14 +3,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import type { BundleProduct } from "@/lib/bundles";
+import { fetchShopProducts } from "@/lib/bundles";
+import BundleCard from "./BundleCard";
 const BundleModal = dynamic(() => import("./BundleModal"), { ssr: false });
 import * as Select from "@radix-ui/react-select";
-import { ChevronDown, Eye, X } from "lucide-react";
-import { states, allProducts, productTypes, Product, slugify } from "../data/shopData";
+import { ChevronDown, X } from "lucide-react";
+import { states, productTypes, slugify } from "../data/shopData";
 import Image from "next/image";
 
 export default function ShopMain() {
   const router = useRouter();
+  const [products, setProducts] = useState<BundleProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedState, setSelectedState] = useState("");
   const [selectedProgramSlug, setSelectedProgramSlug] = useState("");
   // allow selecting multiple product types via checkboxes
@@ -20,7 +25,7 @@ export default function ShopMain() {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+  const [modalProduct, setModalProduct] = useState<BundleProduct | null>(null);
 
   // read URL param from window only once when component mounts
   useEffect(() => {
@@ -37,6 +42,23 @@ export default function ShopMain() {
     if (paramState) {
       setSelectedState(paramState);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const data = await fetchShopProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error("Unable to load products from the database:", error);
+        setProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   // keep the URL in sync when filters change
@@ -56,18 +78,26 @@ export default function ShopMain() {
     const newUrl = queryString ? `/shop?${queryString}` : "/shop";
     router.replace(newUrl);
   }, [selectedProgramSlug, search, selectedState, router]);
-  // Filter logic
-  let filteredProducts = allProducts.filter((p) => {
-    const matchesState = !selectedState || p.code === selectedState;
+
+  let filteredProducts = products.filter((p) => {
+    const productType = p.metadata?.productLabel || p.type || "";
+    const stateCode = p.metadata?.code || "";
+    const productState = p.metadata?.state || "";
+    const productProgram = p.metadata?.program || "";
+    const productTitle = p.name || "";
+
+    const matchesState = !selectedState || stateCode === selectedState;
     const matchesProductType =
-      selectedProductTypes.length === 0 || selectedProductTypes.includes(p.type);
+      selectedProductTypes.length === 0 || selectedProductTypes.includes(productType);
     const matchesSearch =
       !search ||
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.state.toLowerCase().includes(search.toLowerCase());
+      productTitle.toLowerCase().includes(search.toLowerCase()) ||
+      productState.toLowerCase().includes(search.toLowerCase()) ||
+      productProgram.toLowerCase().includes(search.toLowerCase());
     const matchesProgram =
-      !selectedProgramSlug || slugify(p.program) === selectedProgramSlug;
+      !selectedProgramSlug || slugify(productProgram) === selectedProgramSlug;
     return matchesState && matchesProductType && matchesSearch && matchesProgram;
+
   });
 
   // apply sorting
@@ -78,7 +108,7 @@ export default function ShopMain() {
   } else if (sort === "Newest") {
     filteredProducts = filteredProducts
       .slice()
-      .sort((a, b) => (b.year || 0) - (a.year || 0));
+      .sort((a, b) => (b.metadata?.year || 0) - (a.metadata?.year || 0));
   }
   // Best Selling leaves original order
 
@@ -204,7 +234,7 @@ export default function ShopMain() {
           {/* Top Bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-700 text-sm">
-              Showing {filteredProducts.length} of {allProducts.length} products
+              {loadingProducts ? "Searching for Products..." : `Showing ${filteredProducts.length} of ${products.length} products`}
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <input
@@ -269,7 +299,7 @@ export default function ShopMain() {
                   setSelectedProductTypes([]);
                   setSelectedProgramSlug("");
                 }}
-                className="text-green-800 hover:text-green-900 text-sm font-medium underline"
+                className="cursor-pointer text-green-800 hover:text-black text-sm font-medium underline"
               >
                 Clear all
               </button>
@@ -277,114 +307,25 @@ export default function ShopMain() {
           )}
 
           {/* Product Cards */}
-          {filteredProducts.length === 0 ? (
+          {loadingProducts ? (
             <p className="text-center text-green-700 text-lg py-10">
-              No product found.
+              Searching for Products...
+            </p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="text-center text-green-700 text-lg py-10">
+              No Product Found.
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="relative bg-[#fffbea] border border-gray-200 rounded-2xl shadow-sm flex flex-col overflow-hidden hover:shadow-lg transition group"
-                >
-                  {/* Gold Top Border */}
-                  <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400 rounded-t-2xl" />
-
-                  <div className="p-4 pt-6 flex flex-col flex-1">
-                    {/* State, Code Circle, and Badge */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={p.flag}
-                          alt={p.state}
-                          className="w-6 h-4 rounded shadow"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-lg text-gray-900 inline-block">
-                            {p.state}
-                          </span>
-                          <span className="text-xs text-gray-500 inline-block">
-                            State Approved {p.year || 2025}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="bg-white border border-gray-200 text-gray-700 text-xs font-bold w-10 h-10 flex items-center justify-center rounded-full">
-                          {p.code}
-                        </span>
-                        {p.bestValue && (
-                          <span className="bg-yellow-400 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">
-                            Best Value
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Program Type Pill */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-white border border-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full font-medium">
-                        {p.program}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start gap-4">
-                      {/* Features */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="flex items-center gap-1 text-green-700 text-xs">
-                          <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
-                          Instant Download
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-700 text-xs">
-                          <span className="w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
-                          PDF Format
-                        </span>
-                      </div>
-
-                      {/* Logo */}
-                      <div>
-                        <Image
-                          src={p.logo}
-                          alt="logo"
-                          className="w-10 h-10 rounded"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-2 mt-2">
-                      <span className="bg-gray-100 text-gray-700 text-[9px] px-2 py-1 rounded-full">
-                        {p.state}
-                      </span>
-                      <span className="bg-green-700 text-white text-[9px] px-2 py-1 rounded-full font-semibold">
-                        {p.program}
-                      </span>
-                    </div>
-
-                    {/* Title & Description */}
-                    <div className="mb-2">
-                      <div className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
-                        {p.title}
-                      </div>
-                      <div className="text-gray-700 text-[10px] mb-1 line-clamp-2">
-                        {p.description}
-                      </div>
-                    </div>
-
-                    {/* CTA Button */}
-                    <button
-                      className="cursor-pointer w-full bg-green-800 hover:bg-green-900 text-white font-semibold py-2 rounded-lg mt-auto flex items-center justify-center gap-2 transition text-sm"
-                      onClick={() => {
-                        setModalProduct(p);
-                        setModalOpen(true);
-                      }}
-                    >
-                      <Eye size={16} />
-                      See What's Included
-                    </button>
-                  </div>
-                </div>
+              {filteredProducts.map((p) => (
+                <BundleCard
+                  key={p.id}
+                  bundle={p}
+                  onAction={() => {
+                    setModalProduct(p);
+                    setModalOpen(true);
+                  }}
+                />
               ))}
             </div>
           )}
@@ -393,18 +334,26 @@ export default function ShopMain() {
           <BundleModal
             open={modalOpen}
             onClose={() => setModalOpen(false)}
-            bundleTitle={modalProduct.title}
+            bundleTitle={modalProduct.name}
             price={modalProduct.price}
-            oldPrice={2205}
-            saveAmount={2205 - modalProduct.price}
-            items={[
-              { label: "Market Research Report", price: 397 },
-              { label: "Policy & Procedure Manual", price: 497 },
-              { label: "Pro Forma P&L Template", price: 297 },
-              { label: "Licensing Checklist", price: 397 },
-            ]}
-            bonuses={["Private Community Access", "Free Updates When Laws Change"]}
-            coursePrice={297}
+            oldPrice={modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8}
+            saveAmount={(modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8) - modalProduct.price}
+            items={
+              modalProduct.features && modalProduct.features.length > 0
+                ? modalProduct.features.map((label) => ({ label, price: 0 }))
+                : [
+                    { label: "Market Research Report", price: 397 },
+                    { label: "Policy & Procedure Manual", price: 497 },
+                    { label: "Pro Forma P&L Template", price: 297 },
+                    { label: "Licensing Checklist", price: 397 },
+                  ]
+            }
+            bonuses={
+              modalProduct.metadata?.bonuses && modalProduct.metadata.bonuses.length > 0
+                ? modalProduct.metadata.bonuses
+                : ["Private Community Access", "Free Updates When Laws Change"]
+            }
+            coursePrice={modalProduct.metadata?.coursePrice ?? 297}
           />
         )}
       </div>

@@ -71,6 +71,7 @@ SKOOL_COMMUNITY_ID=your_skool_community_id
 2. Go to Settings → API and copy your project URL and keys
 3. Go to SQL Editor and run the schema from `supabase-schema.sql`
 4. Run the seed script from `seed-products.js` in SQL Editor
+5. (Optional) Create initial admin and customer accounts by running `node seed-admin-users.js` with your Supabase env vars set
 
 ### 4. Stripe Setup
 

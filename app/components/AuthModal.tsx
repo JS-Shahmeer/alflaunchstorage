@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { useToast } from './SimpleToast';
 
@@ -16,6 +17,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const { signIn, signUp } = useAuth();
   const toast = useToast();
 
@@ -29,6 +31,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (error) throw error;
         toast.show('Successfully signed in!');
         onClose();
+        router.push('/dashboard');
       } else {
         const { error } = await signUp(email, password, {
           first_name: firstName,

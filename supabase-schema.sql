@@ -14,6 +14,7 @@ CREATE TABLE profiles (
   last_name TEXT,
   company TEXT,
   phone TEXT,
+  is_admin BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -31,7 +32,13 @@ CREATE TABLE products (
   skool_group_id TEXT, -- For Skool integration
   skool_course_id TEXT, -- For Skool course membership mapping
   ghl_tag TEXT, -- GoHighLevel tag for automation
+  state TEXT,
+  code TEXT,
+  program TEXT,
+  product_label TEXT,
+  tags JSONB DEFAULT '[]'::jsonb,
   features JSONB DEFAULT '[]'::jsonb,
+  metadata JSONB DEFAULT '{}'::jsonb,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -88,6 +95,7 @@ ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
 -- Create policies
 -- Profiles: Users can read/update their own profile
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (auth.uid() = id OR is_admin = true);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Products: Everyone can read active products

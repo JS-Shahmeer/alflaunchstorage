@@ -1,83 +1,131 @@
-import { createServerSupabaseClient, isSupabaseConfigured } from '@/utils/supabase-server';
-import { redirect } from 'next/navigation';
-import DashboardClient from '../components/DashboardClient';
+"use client";
 
-export default async function DashboardPage() {
-  // Check if Supabase is configured
-  if (!isSupabaseConfigured()) {
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import CustomerHeader from '../components/CustomerHeader';
+import DashboardClient from '../components/DashboardClient';
+import { useAuth } from '../components/AuthContext';
+import { supabase } from '../../utils/supabase';
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { user, profile, loading } = useAuth();
+  const [userProducts, setUserProducts] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/');
+    }
+
+    if (!loading && user && profile?.is_admin) {
+      router.replace('/admin');
+    }
+  }, [loading, user, profile, router]);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user || loading || profile?.is_admin) {
+        setFetching(false);
+        return;
+      }
+
+      try {
+        setFetching(true);
+
+        if (!supabase) {
+          throw new Error('Supabase client not configured.');
+        }
+
+        const { data: userProductsData, error: userProductsError } = await supabase
+          .from('user_products')
+          .select(`
+            id,
+            granted_at,
+            is_active,
+            products (
+              id,
+              name,
+              description,
+              type,
+              features
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+
+        if (userProductsError) {
+          throw userProductsError;
+        }
+
+        const { data: purchasesData, error: purchasesError } = await supabase
+          .from('purchases')
+          .select(`
+            id,
+            amount,
+            status,
+            created_at,
+            items:metadata->items
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false });
+
+        if (purchasesError) {
+          throw purchasesError;
+        }
+
+        setUserProducts(userProductsData || []);
+        setPurchases(purchasesData || []);
+      } catch (fetchError: any) {
+        console.error('Dashboard data error:', fetchError);
+        setError(fetchError?.message || 'Unable to load dashboard data.');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [user, loading, profile]);
+
+  if (loading || fetching) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Configuration Required</h1>
-          <p className="text-gray-600">Database not configured. Please check your environment variables.</p>
+          <p className="text-lg font-medium text-slate-700">Loading your dashboard…</p>
         </div>
       </div>
     );
   }
 
-  try {
-    const supabase = createServerSupabaseClient();
+  if (!user || profile?.is_admin) {
+    return null;
+  }
 
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      redirect('/?login=true');
-    }
-
-    // Get user's profile and products
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    const { data: userProducts } = await supabase
-      .from('user_products')
-      .select(`
-        id,
-        granted_at,
-        is_active,
-        products (
-          id,
-          name,
-          description,
-          type,
-          features
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('is_active', true);
-
-    const { data: purchases } = await supabase
-      .from('purchases')
-      .select(`
-        id,
-        amount,
-        status,
-        created_at,
-        items:metadata->items
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false });
-
+  if (error) {
     return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Unable to load dashboard</h1>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <CustomerHeader />
       <DashboardClient
         user={user}
         profile={profile}
-        userProducts={userProducts || []}
-        purchases={purchases || []}
+        userProducts={userProducts}
+        purchases={purchases}
       />
-    );
-  } catch (error) {
-    console.error('Dashboard error:', error);
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Unavailable</h1>
-          <p className="text-gray-600">Unable to load dashboard. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
+    </>
+  );
 }
+
+

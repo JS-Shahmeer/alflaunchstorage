@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useCart } from "./cart-context";
 import dynamic from "next/dynamic";
 const CartModal = dynamic(() => import("./CartModal"), { ssr: false });
@@ -9,7 +9,7 @@ const SearchDropdown = dynamic(() => import("./SearchDropdown"), {
 const AuthModal = dynamic(() => import("./AuthModal"), { ssr: false });
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search, ShoppingCart, User, LogOut } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User, LogOut, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import LogoImg from "@/public/assets/images/logo-dark-bg.png";
 import { useAuth } from "./AuthContext";
@@ -29,19 +29,56 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { items } = useCart();
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, profile, isAdmin, loading, signOut } = useAuth();
   const toast = useToast();
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (user && isAdmin && pathname === "/dashboard") {
+      router.replace("/admin");
+    }
+
+    if (user && !isAdmin && pathname === "/admin") {
+      router.replace("/dashboard");
+    }
+  }, [user, isAdmin, pathname, router]);
+
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.show("Error signing out");
-    } else {
+    setProfileMenuOpen(false);
+    setMobileProfileOpen(false);
+    setMenuOpen(false);
+
+    try {
+      const { error } = await signOut();
+
+      if (error) {
+        throw error;
+      }
+
       toast.show("Signed out successfully");
+      router.push("/");
+    } catch (err: any) {
+      toast.show(err?.message || "Error signing out");
     }
   };
 
@@ -89,6 +126,7 @@ const Header = () => {
           <div className="hidden lg:flex items-center gap-4">
             {/* Search */}
             <button
+              type="button"
               onClick={() => setSearchOpen(true)}
               className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
             >
@@ -97,6 +135,7 @@ const Header = () => {
 
             <div className="relative">
               <button
+                type="button"
                 className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
                 onClick={() => setCartOpen((v) => !v)}
               >
@@ -111,21 +150,60 @@ const Header = () => {
 
             {/* Auth Buttons */}
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <User size={16} />
-                  <span>{user.user_metadata?.first_name || user.email}</span>
+              <>
+                <div className="relative" ref={profileMenuRef} onMouseDown={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setProfileMenuOpen((open) => !open)}
+                    className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm hover:shadow-md transition"
+                  >
+                    <User size={18} className="text-slate-700" />
+                    <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-slate-900">
+                      {profile?.first_name || user.user_metadata?.first_name || user.email}
+                    </span>
+                    <ChevronDown size={16} className="text-slate-500" />
+                  </button>
+                  {profileMenuOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-3 w-56 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+                      <div className="px-4 py-4 border-b border-slate-100">
+                        <p className="text-sm font-semibold text-slate-900">Signed in as</p>
+                        <p className="mt-1 text-xs text-slate-500 line-clamp-1">
+                          {profile?.first_name || user.user_metadata?.first_name || user.email}
+                        </p>
+                      </div>
+                      <div className="flex flex-col p-2 gap-2">
+                        {profile?.is_admin ? (
+                          <Link
+                            href="/admin"
+                            className="rounded-2xl px-3 py-3 text-sm font-medium text-slate-900 hover:bg-slate-100 transition"
+                            onClick={() => setProfileMenuOpen(false)}
+                          >
+                            Admin Dashboard
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/dashboard"
+                            className="rounded-2xl px-3 py-3 text-sm font-medium text-slate-900 hover:bg-slate-100 transition"
+                            onClick={() => setProfileMenuOpen(false)}
+                          >
+                            Dashboard
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleSignOut}
+                          className="cursor-pointer rounded-2xl px-3 py-3 text-sm font-medium text-rose-600 hover:bg-slate-100 transition text-left"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
-                  title="Sign Out"
-                >
-                  <LogOut size={16} className="text-gray-600" />
-                </button>
-              </div>
+              </>
             ) : (
               <button
+                type="button"
                 onClick={() => setAuthOpen(true)}
                 className="bg-green-700 cursor-pointer hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition"
               >
@@ -143,8 +221,14 @@ const Header = () => {
 
           {/* Mobile Menu / Close Button */}
           <button
+            type="button"
             className="lg:hidden p-2 relative z-50"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => {
+              setMenuOpen((open) => {
+                if (open) setMobileProfileOpen(false);
+                return !open;
+              });
+            }}
           >
             {menuOpen ? (
               <X size={26} className="text-black" />
@@ -180,9 +264,32 @@ const Header = () => {
                 );
               })}
 
+              {user && (
+                <>
+                  {profile?.is_admin ? (
+                    <a
+                      href="/admin"
+                      onClick={() => setMenuOpen(false)}
+                      className="text-lg font-semibold text-slate-900 hover:text-slate-700"
+                    >
+                      Admin Dashboard
+                    </a>
+                  ) : (
+                    <a
+                      href="/dashboard"
+                      onClick={() => setMenuOpen(false)}
+                      className="text-lg font-semibold text-green-700 hover:text-green-800"
+                    >
+                      Dashboard
+                    </a>
+                  )}
+                </>
+              )}
+
               {/* Mobile Search */}
               <div className="mt-4">
                 <button
+                  type="button"
                   onClick={() => setSearchOpen(true)}
                   className="flex items-center gap-2 w-full p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition"
                 >
@@ -192,9 +299,10 @@ const Header = () => {
               </div>
 
               {/* Mobile Cart and Auth */}
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-start justify-between mt-4">
                 <div className="relative">
                   <button
+                    type="button"
                     className="p-2 rounded hover:bg-gray-100 transition"
                     onClick={() => setCartOpen((v) => !v)}
                   >
@@ -208,29 +316,72 @@ const Header = () => {
                 </div>
 
                 {user ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <User size={16} />
-                      <span className="truncate max-w-32">
-                        {user.user_metadata?.first_name || user.email}
+                <div className="w-full" onMouseDown={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setMobileProfileOpen((open) => !open)}
+                    className="cursor-pointer flex w-full items-center justify-between gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-slate-900">
+                      <User size={18} className="text-slate-600" />
+                      <span className="truncate">
+                        {profile?.first_name || user.user_metadata?.first_name || user.email}
                       </span>
                     </div>
-                    <button
-                      onClick={handleSignOut}
-                      className="p-2 rounded hover:bg-gray-100 transition cursor-pointer"
-                      title="Sign Out"
-                    >
-                      <LogOut size={16} className="text-gray-600" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setAuthOpen(true)}
-                    className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
-                  >
-                    Sign In
+                    <ChevronDown
+                      size={16}
+                      className={`text-slate-500 transition ${mobileProfileOpen ? "rotate-180" : ""}`}
+                    />
                   </button>
-                )}
+
+                  {mobileProfileOpen && (
+                    <div className="mt-3 space-y-2 rounded-3xl border border-slate-200 bg-white p-3 shadow-lg">
+                      {profile?.is_admin ? (
+                        <Link
+                          href="/admin"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setMobileProfileOpen(false);
+                          }}
+                          className="block rounded-2xl px-3 py-3 text-sm font-medium text-slate-900 hover:bg-slate-100 transition"
+                        >
+                          Admin Dashboard
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setMobileProfileOpen(false);
+                          }}
+                          className="block rounded-2xl px-3 py-3 text-sm font-medium text-slate-900 hover:bg-slate-100 transition"
+                        >
+                          Dashboard
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={handleSignOut}
+                        className="cursor-pointer w-full rounded-2xl px-3 py-3 text-left text-sm font-medium text-rose-600 hover:bg-slate-100 transition"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthOpen(true);
+                    setMenuOpen(false);
+                  }}
+                  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
+                >
+                  Sign In
+                </button>
+              )}
               </div>
 
               <a
@@ -247,7 +398,10 @@ const Header = () => {
           {menuOpen && (
             <div
               className="fixed inset-0 bg-black/40 z-30"
-              onClick={() => setMenuOpen(false)}
+              onClick={() => {
+                setMenuOpen(false);
+                setMobileProfileOpen(false);
+              }}
             />
           )}
 
@@ -263,6 +417,7 @@ const Header = () => {
             onNavigate={(url) => {
               router.push(url);
               setMenuOpen(false); // Close mobile menu if open
+              setMobileProfileOpen(false);
             }}
           />
         </div>
