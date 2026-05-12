@@ -25,6 +25,8 @@ export interface BundleMetadata {
   bonuses?: string[];
   coursePrice?: number;
   files?: BundleFileMetadata[];
+  isDerivedIndividual?: boolean;
+  is_individual?: boolean;
 }
 
 export interface BundleProduct {

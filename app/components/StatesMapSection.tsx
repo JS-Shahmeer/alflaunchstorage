@@ -6,6 +6,7 @@ import USAMap from "./USAMap";
 import { useRouter } from "next/navigation";
 import "./usa-map-hover.css";
 import { HiLocationMarker } from "react-icons/hi";
+import Swal from "sweetalert2";
 
 export default function StatesMapSection() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
@@ -76,11 +77,35 @@ export default function StatesMapSection() {
   // Import the CSS file for hover effect
   // (Create app/components/usa-map-hover.css with the required styles)
 
-  const handleStateSelect = (abbr: string) => {
+  const handleStateSelect = async (abbr: string) => {
     if (abbr && stateNames[abbr]) {
-      setSelectedState(abbr);
-      setSelectedStateName(stateNames[abbr]);
-      router.push(`/get-started?state=${abbr}`);
+      const stateName = stateNames[abbr];
+      try {
+        const response = await fetch(`/api/products?includeIndividual=true&state=${encodeURIComponent(stateName)}`);
+        const data = await response.json();
+        if (response.ok && data.products && data.products.length > 0) {
+          setSelectedState(abbr);
+          setSelectedStateName(stateNames[abbr]);
+          router.push(`/get-started?state=${abbr}`);
+        } else {
+          Swal.fire({
+            icon: "info",
+            title: "Coming Soon",
+            text: `We're currently working on licensing resources for ${stateName}. Please check back soon or contact us for updates.`,
+            confirmButtonColor: "#417a5a",
+            background: "#f9f9f4",
+            color: "#417a5a",
+          });
+        }
+      } catch (error) {
+        console.error('Error checking state bundles:', error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Unable to check availability. Please try again.",
+          confirmButtonColor: "#417a5a",
+        });
+      }
     }
   };
 

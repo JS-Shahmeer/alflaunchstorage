@@ -187,8 +187,9 @@ export default function GetStartedComponentThree({
                 <p className="text-center text-[#417a5a] py-8">No individual bundles available for {stateNames[selectedState]}</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full">
-                  {stateResources.map((resource) => {
-                    const itemId = `${resource.bundleId}-${resource.label}`;
+                  {stateResources.map((resource, index) => {
+                    const uniqueFileId = resource.name || resource.path || resource.url || index;
+                    const itemId = `${resource.bundleId}-${resource.label}-${uniqueFileId}`;
                     const itemPrice = individualItemPricing[resource.label] ?? 397;
                     const itemDesc = individualItemDescriptions[resource.label] ?? resource.label;
                     const isSelected = selectedProducts.includes(itemId);
@@ -213,7 +214,7 @@ export default function GetStartedComponentThree({
                     return (
                       <div key={itemId} className={`bg-white border ${isSelected ? 'border-[#417a5a] ring-2 ring-[#417a5a]' : 'border-[#eaffea]'} rounded-xl p-4 md:p-6 shadow-sm`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold text-[#417a5a] text-sm md:text-base">{resource.label}</span>
+                          <span className="capitalize font-semibold text-[#417a5a] text-sm md:text-base">{resource.label}</span>
                         </div>
                         <div className="text-[#417a5a] text-xs mb-3 md:mb-4">{itemDesc}</div>
                         <div className="text-[#417a5a] font-semibold text-sm mb-3">${itemPrice}</div>

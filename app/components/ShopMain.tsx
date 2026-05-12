@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { BundleProduct } from "@/lib/bundles";
 import { fetchShopProducts } from "@/lib/bundles";
 import BundleCard from "./BundleCard";
+import DetailsModal from "./DetailsModal";
+import CompareModal from "./CompareModal";
 const BundleModal = dynamic(() => import("./BundleModal"), { ssr: false });
 import * as Select from "@radix-ui/react-select";
 import { ChevronDown, X } from "lucide-react";
-import { states, productTypes, slugify } from "../data/shopData";
+import { states, productTypes, programCategories, slugify } from "../data/shopData";
 import Image from "next/image";
 
 export default function ShopMain() {
@@ -17,7 +19,7 @@ export default function ShopMain() {
   const [products, setProducts] = useState<BundleProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedState, setSelectedState] = useState("");
-  const [selectedProgramSlug, setSelectedProgramSlug] = useState("");
+  const [selectedProgramSlugs, setSelectedProgramSlugs] = useState<string[]>([]);
   // allow selecting multiple product types via checkboxes
   const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -26,15 +28,118 @@ export default function ShopMain() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalProduct, setModalProduct] = useState<BundleProduct | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [detailsProduct, setDetailsProduct] = useState<BundleProduct | null>(null);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [compareProduct, setCompareProduct] = useState<BundleProduct | null>(null);
+
+  const displayProducts = useMemo(() => {
+    const baseProducts = products || [];
+
+    const existingStateTypeKeys = new Set(
+      baseProducts.map((product) => {
+        const state = product.metadata?.state || product.state || "";
+        const type = product.metadata?.productLabel || product.type || "";
+        return `${state}||${type}`;
+      }),
+    );
+
+    const derivedProducts = baseProducts.flatMap((product) => {
+      const metadata = product.metadata || {};
+      const productLabel = metadata.productLabel || product.product_label || product.type || "";
+      const isCompleteBundle = productLabel === "Complete Bundle";
+      const isIndividualBundleSource =
+        productLabel === "Individual Bundle" ||
+        metadata.is_individual === true ||
+        product.product_label === "Individual Bundle";
+      const files = Array.isArray(metadata.files) ? metadata.files : [];
+
+      if (!(isCompleteBundle || isIndividualBundleSource) || files.length === 0) {
+        return [];
+      }
+
+      return files
+        .map((file: any, index: number) => {
+          const rawLabel = String(file.label || file.name || `Item ${index + 1}`).trim();
+          if (!rawLabel) {
+            return null;
+          }
+
+          // Clean and normalize label to match productTypes
+          const label = rawLabel
+            .replace(/\s+Demofile$/i, '')  // Remove "Demofile" suffix
+            .replace(/\s+/g, ' ')          // Normalize multiple spaces
+            .trim()
+            // Normalize to title case
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+            // Fix specific cases to match productTypes
+            .replace(/Policy Procedure Manual/i, 'Policy & Procedure Manual')
+            .replace(/Pro Forma P L Template/i, 'Pro Forma P&L Template')
+            .replace(/Licensing Checklist/i, 'Licensing Checklist')
+            .replace(/Market Research Report/i, 'Market Research Report');
+
+          const state = metadata.state || product.state || "";
+          const program = metadata.program || product.program || "";
+
+          const stateTypeKey = `${state}||${label}`;
+          if (existingStateTypeKeys.has(stateTypeKey)) {
+            return null;
+          }
+
+          const typePrice = productTypes.find((pt) => pt.label === label)?.price;
+
+          return {
+            ...product,
+            id: `${product.id}-file-${file.name || index}`,
+            name: `${label} • ${state}`,
+            description: `Individual resource for ${state} ${program}`,
+            price: typePrice ?? 397,
+            type: label,
+            product_slug: `${product.product_slug || "bundle"}-file-${file.name || index}`,
+            metadata: {
+              ...metadata,
+              productLabel: label,
+              tags: [state, program, label].filter(Boolean),
+              files: [file],
+              isDerivedIndividual: true,
+            },
+            features: [],
+          } as BundleProduct;
+        })
+        .filter(Boolean) as BundleProduct[];
+    });
+
+    return [...baseProducts, ...derivedProducts];
+  }, [products]);
+
+  const availableProgramOptions = useMemo(() => {
+    const available = new Set(
+      displayProducts
+        .filter((product) => {
+          if (!selectedState) return true;
+          const productCode = product.metadata?.code || product.code || "";
+          return productCode === selectedState;
+        })
+        .map((product) => (product.metadata?.program || product.program || "").trim())
+        .filter(Boolean),
+    );
+
+    const ordered = programCategories.filter((program) => available.has(program));
+    const extras = Array.from(available).filter((program) => !programCategories.includes(program));
+    return [...ordered, ...extras];
+  }, [displayProducts, selectedState]);
 
   // read URL param from window only once when component mounts
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const paramProgram = params.get("programs") || "";
+    const paramPrograms = params.get("programs") || "";
     const paramSearch = params.get("search") || "";
     const paramState = params.get("state") || "";
-    if (paramProgram) {
-      setSelectedProgramSlug(paramProgram);
+    if (paramPrograms) {
+      setSelectedProgramSlugs(paramPrograms.split(",").filter(Boolean));
     }
     if (paramSearch) {
       setSearch(paramSearch);
@@ -64,8 +169,8 @@ export default function ShopMain() {
   // keep the URL in sync when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (selectedProgramSlug) {
-      params.set("programs", selectedProgramSlug);
+    if (selectedProgramSlugs.length > 0) {
+      params.set("programs", selectedProgramSlugs.join(","));
     }
     if (search) {
       params.set("search", search);
@@ -77,14 +182,15 @@ export default function ShopMain() {
     const queryString = params.toString();
     const newUrl = queryString ? `/shop?${queryString}` : "/shop";
     router.replace(newUrl);
-  }, [selectedProgramSlug, search, selectedState, router]);
+  }, [selectedProgramSlugs, search, selectedState, router]);
 
-  let filteredProducts = products.filter((p) => {
+  let filteredProducts = displayProducts.filter((p) => {
     const productType = p.metadata?.productLabel || p.type || "";
     const stateCode = p.metadata?.code || "";
     const productState = p.metadata?.state || "";
     const productProgram = p.metadata?.program || "";
     const productTitle = p.name || "";
+    const productProgramSlug = slugify(productProgram);
 
     const matchesState = !selectedState || stateCode === selectedState;
     const matchesProductType =
@@ -95,7 +201,7 @@ export default function ShopMain() {
       productState.toLowerCase().includes(search.toLowerCase()) ||
       productProgram.toLowerCase().includes(search.toLowerCase());
     const matchesProgram =
-      !selectedProgramSlug || slugify(productProgram) === selectedProgramSlug;
+      selectedProgramSlugs.length === 0 || selectedProgramSlugs.includes(productProgramSlug);
     return matchesState && matchesProductType && matchesSearch && matchesProgram;
 
   });
@@ -175,9 +281,45 @@ export default function ShopMain() {
             <label className="block text-sm font-semibold mb-2 text-black">
               Program Type
             </label>
-            <div className="text-gray-500 text-xs mb-2">
-              Select a state first to see available program types
-            </div>
+            {!selectedState ? (
+              <div className="text-sm text-slate-500">
+                Select a state first to see available program types
+              </div>
+            ) : availableProgramOptions.length === 0 ? (
+              <div className="text-sm text-slate-500">
+                No program types available for this state
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {availableProgramOptions.map((program) => {
+                  const programSlug = slugify(program);
+                  const isChecked = selectedProgramSlugs.includes(programSlug);
+                  return (
+                    <label
+                      key={program}
+                      className="flex items-start gap-2 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        value={programSlug}
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedProgramSlugs((prev) =>
+                            isChecked
+                              ? prev.filter((slug) => slug !== programSlug)
+                              : [...prev, programSlug],
+                          );
+                        }}
+                        className="accent-green-700 mt-1"
+                      />
+                      <span className="text-gray-900 text-sm flex items-start flex-col">
+                        {program}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="mb-8">
             <label className="block text-sm font-semibold mb-2 text-black">
@@ -234,7 +376,7 @@ export default function ShopMain() {
           {/* Top Bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-700 text-sm">
-              {loadingProducts ? "Searching for Products..." : `Showing ${filteredProducts.length} of ${products.length} products`}
+              {loadingProducts ? "Searching for Products..." : `Showing ${filteredProducts.length} of ${displayProducts.length} products`}
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <input
@@ -258,7 +400,7 @@ export default function ShopMain() {
           </div>
 
           {/* Active Filters Display */}
-          {(selectedState || selectedProductTypes.length > 0 || selectedProgramSlug) && (
+          {(selectedState || selectedProductTypes.length > 0 || selectedProgramSlugs.length > 0) && (
             <div className="flex items-center gap-2 mb-6 flex-wrap">
               <span className="text-gray-700 text-sm font-medium">Active filters:</span>
               {selectedState && (
@@ -272,15 +414,19 @@ export default function ShopMain() {
                   <X size={16} />
                 </div>
               )}
-              {selectedProgramSlug && (
-                <div
-                  className="inline-flex items-center gap-2 bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
-                  onClick={() => setSelectedProgramSlug("")}
-                >
-                  <span>{selectedProgramSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
-                  <X size={16} />
-                </div>
-              )}
+              {selectedProgramSlugs.length > 0 &&
+                selectedProgramSlugs.map((slug) => (
+                  <div
+                    key={slug}
+                    className="inline-flex items-center gap-2 bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium cursor-pointer"
+                    onClick={() =>
+                      setSelectedProgramSlugs((prev) => prev.filter((item) => item !== slug))
+                    }
+                  >
+                    <span>{slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                    <X size={16} />
+                  </div>
+                ))}
               {selectedProductTypes.map((type) => (
                 <div
                   key={type}
@@ -297,7 +443,7 @@ export default function ShopMain() {
                 onClick={() => {
                   setSelectedState("");
                   setSelectedProductTypes([]);
-                  setSelectedProgramSlug("");
+                  setSelectedProgramSlugs([]);
                 }}
                 className="cursor-pointer text-green-800 hover:text-black text-sm font-medium underline"
               >
@@ -317,16 +463,25 @@ export default function ShopMain() {
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((p) => (
-                <BundleCard
-                  key={p.id}
-                  bundle={p}
-                  onAction={() => {
-                    setModalProduct(p);
-                    setModalOpen(true);
-                  }}
-                />
-              ))}
+              {filteredProducts.map((p) => {
+                const isDerivedIndividual = p.metadata?.isDerivedIndividual || false;
+                return (
+                  <BundleCard
+                    key={p.id}
+                    bundle={p}
+                    actionLabel={isDerivedIndividual ? "See Sample" : "See What's Included"}
+                    onAction={() => {
+                      if (isDerivedIndividual) {
+                        setDetailsProduct(p);
+                        setDetailsModalOpen(true);
+                      } else {
+                        setModalProduct(p);
+                        setModalOpen(true);
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         {/* Modal for bundle details (only one instance, outside the map) */}
@@ -354,6 +509,31 @@ export default function ShopMain() {
                 : ["Private Community Access", "Free Updates When Laws Change"]
             }
             coursePrice={modalProduct.metadata?.coursePrice ?? 297}
+          />
+        )}
+        {detailsModalOpen && detailsProduct && (
+          <DetailsModal
+            open={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            onRequestCompare={() => {
+              setDetailsModalOpen(false);
+              setCompareProduct(detailsProduct);
+              setCompareModalOpen(true);
+            }}
+            state={detailsProduct.metadata?.state || detailsProduct.state || ""}
+            agencyType={detailsProduct.metadata?.program || detailsProduct.program || ""}
+            price={detailsProduct.price}
+            oldPrice={detailsProduct.metadata?.oldPrice ?? detailsProduct.price * 1.5}
+            features={detailsProduct.features || []}
+            productKey={detailsProduct.metadata?.productLabel || detailsProduct.type || detailsProduct.product_label}
+            productTitle={detailsProduct.metadata?.productLabel || detailsProduct.type || detailsProduct.product_label || ""}
+          />
+        )}
+        {compareModalOpen && compareProduct && (
+          <CompareModal
+            open={compareModalOpen}
+            onClose={() => setCompareModalOpen(false)}
+            currentProduct={compareProduct}
           />
         )}
       </div>

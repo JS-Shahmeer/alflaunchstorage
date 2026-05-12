@@ -145,20 +145,13 @@ async function fetchProductsWithMetadata(supabase: any) {
     .from('products')
     .select(selectFields)
     .eq('is_active', true)
-    .neq('product_label', 'Individual Bundle')
     .order('created_at', { ascending: false });
 
   if (error) {
     return { data: null, error };
   }
 
-  // Additional filter for products that might have is_individual in metadata
-  const filteredData = (data || []).filter((product: any) => {
-    const metadata = parseJsonField(product.metadata);
-    return !metadata?.is_individual;
-  });
-
-  const products = filteredData.map((product: any) => {
+  const products = await Promise.all((data || []).map(async (product: any) => {
     const metadata = parseJsonField(product.metadata);
     const features = parseJsonField(product.features);
     const normalizedMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
@@ -178,12 +171,20 @@ async function fetchProductsWithMetadata(supabase: any) {
       ? { ...derivedMetadata, ...normalizedMetadata, ...explicitMetadata }
       : { ...derivedMetadata, ...explicitMetadata };
 
+    // Hydrate files for complete bundles too
+    if (mergedMetadata.productLabel === 'Complete Bundle' && product.product_slug) {
+      const storageFiles = await listStorageFilesForBundle(supabase, product.product_slug);
+      if (storageFiles.length > 0) {
+        mergedMetadata.files = storageFiles;
+      }
+    }
+
     return {
       ...product,
       metadata: mergedMetadata,
       features: normalizedFeatures,
     };
-  });
+  }));
 
   return { data: products, error: null };
 }
@@ -287,36 +288,45 @@ async function fetchIndividualBundlesForState(supabase: any, state: string) {
     }
   }
 
-  const products = Object.values(combinedResults)
-    .map((product: any) => {
-    const metadata = parseJsonField(product.metadata);
-    const features = parseJsonField(product.features);
-    const normalizedMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
-    const explicitTags = parseJsonField(product.tags);
-    const explicitMetadata: any = {
-      state: product.state || normalizedMetadata?.state,
-      code: product.code || normalizedMetadata?.code,
-      program: product.program || normalizedMetadata?.program,
-      productLabel: product.product_label || normalizedMetadata?.productLabel,
-      tags: Array.isArray(explicitTags)
-        ? explicitTags
-        : normalizedMetadata?.tags || [],
-    };
-    const normalizedFeatures = Array.isArray(features) ? features : [];
-    const derivedMetadata = deriveMetadataFromName(product);
-    const mergedMetadata = normalizedMetadata
-      ? { ...derivedMetadata, ...normalizedMetadata, ...explicitMetadata }
-      : { ...derivedMetadata, ...explicitMetadata };
+  const products = await Promise.all(
+    Object.values(combinedResults).map(async (product: any) => {
+      const metadata = parseJsonField(product.metadata);
+      const features = parseJsonField(product.features);
+      const normalizedMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
+      const explicitTags = parseJsonField(product.tags);
+      const explicitMetadata: any = {
+        state: product.state || normalizedMetadata?.state,
+        code: product.code || normalizedMetadata?.code,
+        program: product.program || normalizedMetadata?.program,
+        productLabel: product.product_label || normalizedMetadata?.productLabel,
+        tags: Array.isArray(explicitTags)
+          ? explicitTags
+          : normalizedMetadata?.tags || [],
+      };
+      const normalizedFeatures = Array.isArray(features) ? features : [];
+      const derivedMetadata = deriveMetadataFromName(product);
+      const mergedMetadata = normalizedMetadata
+        ? { ...derivedMetadata, ...normalizedMetadata, ...explicitMetadata }
+        : { ...derivedMetadata, ...explicitMetadata };
 
-    return {
-      ...product,
-      metadata: mergedMetadata,
-      features: normalizedFeatures,
-    };
-  });
+      if (mergedMetadata.productLabel === 'Complete Bundle' && product.product_slug) {
+        const storageFiles = await listStorageFilesForBundle(supabase, product.product_slug);
+        if (storageFiles.length > 0) {
+          mergedMetadata.files = storageFiles;
+        }
+      }
+
+      return {
+        ...product,
+        metadata: mergedMetadata,
+        features: normalizedFeatures,
+      };
+    }),
+  );
 
   return { data: products, error: null };
 }
+
 
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {

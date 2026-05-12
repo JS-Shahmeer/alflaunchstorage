@@ -92,12 +92,12 @@ const PRODUCT_CONTENT: Record<string, {
   },
 };
 import { X, CheckCircle, Zap } from "lucide-react";
-import { useCart } from "./cart-context";
 import { useToast } from "./SimpleToast";
 
 interface DetailsModalProps {
   open: boolean;
   onClose: () => void;
+  onRequestCompare?: () => void;
   state: string;
   agencyType: string;
   price: number;
@@ -111,6 +111,7 @@ interface DetailsModalProps {
 export default function DetailsModal({
   open,
   onClose,
+  onRequestCompare,
   state,
   agencyType,
   price,
@@ -120,8 +121,6 @@ export default function DetailsModal({
   productDesc,
   productTitle,
 }: DetailsModalProps) {
-  const { addItem } = useCart();
-  const toast = useToast();
   if (!open) return null;
 
   // Determine which product content to use
@@ -200,24 +199,17 @@ export default function DetailsModal({
               Save $119
             </span>
           </div>
-          {/* <button
+          <button
             className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-2"
             onClick={() => {
-              if (productKey) {
-                addItem({
-                  id: productKey,
-                  name: productKey,
-                  price,
-                  type: agencyType,
-                  state,
-                });
-                toast.show(`${productKey} added to cart!`);
-                onClose();
+              onClose();
+              if (onRequestCompare) {
+                onRequestCompare();
               }
             }}
           >
             Add to Cart
-          </button> */}
+          </button>
         </div>
         {/* Footer */}
         <div className="flex justify-center gap-4 text-xs text-gray-600 mt-2">

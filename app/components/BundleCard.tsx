@@ -27,6 +27,7 @@ export default function BundleCard({
   const productLabel = bundle.metadata?.productLabel || bundle.product_label;
   const code = bundle.metadata?.code || bundle.code || "";
   const year = bundle.metadata?.year || 2025;
+  const isDerivedIndividual = bundle.metadata?.isDerivedIndividual || false;
   const tags = Array.isArray(bundle.metadata?.tags)
     ? bundle.metadata.tags.filter(Boolean)
     : Array.isArray(bundle.tags)
@@ -176,19 +177,24 @@ export default function BundleCard({
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
             <span className="bg-white border border-gray-200 text-gray-700 text-xs font-bold w-10 h-10 flex items-center justify-center rounded-full">
               {bundle.metadata?.code || ""}
             </span>
-            {bundle.metadata?.bestValue && (
-              <span className="bg-yellow-400 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">
+            {!isDerivedIndividual && (
+              <span className="bg-yellow-400 text-white text-xs font-bold px-2 py-1 rounded-md ml-2">
                 Best Value
               </span>
             )}
+            {/* {isDerivedIndividual && (
+              <span className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">
+                Individual Resource
+              </span>
+            )} */}
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mb-2">
+        <div className="flex items-center justify-between gap-4 mb-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="flex items-center gap-1 text-green-700 text-xs">
               <span className="w-2 h-2 bg-green-500 rounded-full inline-block" />
@@ -238,7 +244,7 @@ export default function BundleCard({
         </div>
 
         <div className="mb-2">
-          <div className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
+          <div className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 capitalize">
             {bundle.name}
           </div>
           <div className="text-gray-700 text-[10px] mb-1 line-clamp-2">
