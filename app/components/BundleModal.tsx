@@ -153,16 +153,16 @@ export default function BundleModal({
                     {items.map((item, idx) => (
                       <li
                         key={item.label}
-                        className="flex items-center text-green-900 text-sm"
+                        className="flex items-start text-green-900 text-sm"
                       >
                         <CheckCircle2
                           size={16}
-                          className="text-green-600 mr-2"
+                          className="text-green-600 mr-2 mt-0.5 shrink-0"
                         />{" "}
                         {item.label}
-                        <span className="ml-auto font-semibold">
+                        {/* <span className="ml-auto font-semibold">
                           ${item.price}
-                        </span>
+                        </span> */}
                       </li>
                     ))}
                     {/* Course at half price row */}
@@ -177,9 +177,9 @@ export default function BundleModal({
                       <span className="ml-auto line-through text-gray-400 text-xs">
                         $697
                       </span>
-                      <span className="ml-2 text-yellow-900 font-bold text-xs">
+                      {/* <span className="ml-2 text-yellow-900 font-bold text-xs">
                         ${coursePrice}
-                      </span>
+                      </span> */}
                     </li>
                   </ul>
                 </div>

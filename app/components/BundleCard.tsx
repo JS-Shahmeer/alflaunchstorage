@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Eye } from "lucide-react";
 import type { BundleProduct } from "@/lib/bundles";
+import { states } from "@/app/data/shopData";
 
 interface BundleCardProps {
   bundle: BundleProduct;
@@ -21,14 +22,21 @@ export default function BundleCard({
   actionLabel = "See What's Included",
   variant = "default",
 }: BundleCardProps) {
-  const stateLabel = bundle.metadata?.state || bundle.name;
-  const programLabel = bundle.metadata?.program;
-  const productLabel = bundle.metadata?.productLabel;
-  const code = bundle.metadata?.code;
+  const stateLabel = bundle.metadata?.state || bundle.state || bundle.name;
+  const programLabel = bundle.metadata?.program || bundle.program;
+  const productLabel = bundle.metadata?.productLabel || bundle.product_label;
+  const code = bundle.metadata?.code || bundle.code || "";
   const year = bundle.metadata?.year || 2025;
   const tags = Array.isArray(bundle.metadata?.tags)
     ? bundle.metadata.tags.filter(Boolean)
+    : Array.isArray(bundle.tags)
+    ? bundle.tags.filter(Boolean)
     : [];
+  const stateFromData = states.find(
+    (s) => s.code === bundle.metadata?.code || s.code === bundle.code || s.name === bundle.metadata?.state || s.name === bundle.state,
+  );
+  const flagSrc = stateFromData?.flag || bundle.metadata?.flag || "/assets/images/logo-dark-bg.png";
+  const logoSrc = bundle.metadata?.logo || "/assets/images/logo-dark-bg.png";
   const uniqueTags = tags.filter(
     (tag, index, arr) =>
       arr.indexOf(tag) === index &&
@@ -46,11 +54,11 @@ export default function BundleCard({
             <div className="flex items-start gap-4 min-w-0">
               <div className="relative">
                 <img
-                  src={bundle.metadata?.flag || "/assets/images/logo-dark-bg.png"}
+                  src={flagSrc}
                   alt={stateLabel}
                   className="h-12 w-16 rounded-2xl object-cover shadow-sm"
                 />
-                {bundle.metadata?.bestValue && (
+                {(bundle.metadata?.bestValue || false) && (
                   <span className="absolute -top-1 -right-1 rounded-full bg-yellow-500 px-2 py-1 text-[10px] font-semibold text-white shadow-sm">
                     Best
                   </span>
@@ -113,7 +121,7 @@ export default function BundleCard({
             </div>
             <div className="hidden sm:block">
               <Image
-                src={bundle.metadata?.logo || "/assets/images/logo-dark-bg.png"}
+                src={logoSrc}
                 alt="bundle logo"
                 className="h-14 w-14 rounded-2xl object-cover"
                 width={56}
@@ -132,7 +140,7 @@ export default function BundleCard({
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
             >
               <Eye size={16} />
               {actionLabel}
@@ -154,7 +162,7 @@ export default function BundleCard({
         <div className="flex items-start justify-between mb-2 gap-1.5">
           <div className="flex items-start gap-2">
             <img
-              src={bundle.metadata?.flag || "/assets/images/logo-dark-bg.png"}
+              src={flagSrc}
               alt={bundle.metadata?.state || bundle.name}
               className="w-6 h-4 rounded shadow mt-1.5 object-cover"
             />
@@ -194,7 +202,7 @@ export default function BundleCard({
 
           <div>
             <Image
-              src={bundle.metadata?.logo || "/assets/images/logo-dark-bg.png"}
+              src={logoSrc}
               alt="logo"
               className="w-10 h-10 rounded"
               width={40}

@@ -3,6 +3,7 @@ import Stepper from "./Stepper";
 import { useRouter } from "next/navigation";
 import GetStartedSidebar from "./GetStartedSidebar";
 import GetStartedStickyBar from "./GetStartedStickyBar";
+import { useCart } from "./cart-context";
 
 export default function GetStartedComponentFour({
   steps,
@@ -16,6 +17,13 @@ export default function GetStartedComponentFour({
   stateNames: { [abbr: string]: string };
 }) {
   const router = useRouter();
+  const { items } = useCart();
+
+  // Calculate totals from cart items
+  const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+  const taxRate = 0.08; // 8% tax
+  const taxAmount = subtotal * taxRate;
+  const total = subtotal + taxAmount;
   return (
     <>
       <Stepper currentStep={4} steps={steps} />
@@ -44,14 +52,25 @@ export default function GetStartedComponentFour({
                   {selectedType}
                 </span>
               </div>
-              <div className="mb-2 text-gray-700 text-sm md:text-base">
-                Licensing package for {selectedType} in{" "}
-                {stateNames[selectedState]}
+              
+              {/* Cart Items */}
+              <div className="mb-4 pb-4 border-b border-[#eaffea]">
+                <div className="text-sm text-gray-700 font-semibold mb-2">Items in cart:</div>
+                {items.length === 0 ? (
+                  <div className="text-gray-500 text-sm">No items in cart</div>
+                ) : (
+                  <div className="space-y-2">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span className="text-gray-700">{item.name}</span>
+                        <span className="font-semibold text-gray-700">${item.price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="mb-2 text-gray-700 font-semibold text-sm md:text-base">
-                Complete Licensing Bundle
-              </div>
-              <div className="mb-3 md:mb-4">
+
+              <div className="mb-2">
                 <label className="block text-sm font-medium mb-1 text-gray-700">
                   Promo Code
                 </label>
@@ -67,11 +86,15 @@ export default function GetStartedComponentFour({
               </div>
               <div className="flex justify-between mb-2 text-sm md:text-base">
                 <span className="text-gray-700">Subtotal</span>
-                <span className="font-semibold text-gray-700">$997</span>
+                <span className="font-semibold text-gray-700">${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between mb-4 text-sm md:text-base">
+                <span className="text-gray-700">Tax (8%)</span>
+                <span className="font-semibold text-gray-700">${taxAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-base md:text-lg font-bold mb-4">
                 <span className="text-gray-700">Total</span>
-                <span className="text-gray-700">$997</span>
+                <span className="text-gray-700">${total.toFixed(2)}</span>
               </div>
               <div className="text-xs text-gray-700 text-center mt-4 md:mt-6">
                 All sales are final. This product is an informational resource

@@ -200,7 +200,7 @@ export default function DetailsModal({
               Save $119
             </span>
           </div>
-          <button
+          {/* <button
             className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-2"
             onClick={() => {
               if (productKey) {
@@ -217,7 +217,7 @@ export default function DetailsModal({
             }}
           >
             Add to Cart
-          </button>
+          </button> */}
         </div>
         {/* Footer */}
         <div className="flex justify-center gap-4 text-xs text-gray-600 mt-2">

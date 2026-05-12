@@ -1,3 +1,12 @@
+export interface BundleFileMetadata {
+  label: string;
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
+  path?: string;
+}
+
 export interface BundleMetadata {
   status?: string;
   quantity?: number;
@@ -15,6 +24,7 @@ export interface BundleMetadata {
   oldPrice?: number;
   bonuses?: string[];
   coursePrice?: number;
+  files?: BundleFileMetadata[];
 }
 
 export interface BundleProduct {
@@ -59,6 +69,7 @@ export interface BundleFormPayload {
     flag: string;
     logo: string;
     year: number;
+    files?: BundleFileMetadata[];
   };
   features: string[];
   is_active?: boolean;
@@ -114,6 +125,18 @@ export async function createAdminBundle(payload: BundleFormPayload): Promise<Bun
     throw new Error("Bundle creation returned no bundle data.");
   }
   return body.bundle;
+}
+
+export async function uploadBundleFiles(formData: FormData): Promise<BundleFileMetadata[]> {
+  const response = await fetch("/api/admin/bundles/upload-files", {
+    method: "POST",
+    body: formData,
+  });
+  const body = await parseJson<any>(response);
+  if (!response.ok) {
+    throw new Error(body?.error || "Unable to upload bundle files.");
+  }
+  return body.files || [];
 }
 
 export async function updateAdminBundle(id: string, payload: Partial<BundleFormPayload>): Promise<BundleProduct> {

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, isSupabaseConfigured } from '@/utils/supabase-server';
 import { states } from '@/app/data/shopData';
 
+const DEFAULT_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'bundle-files';
+
 function deriveMetadataFromName(product: any) {
   const defaultFlag = states.find((s) => s.code === 'AL')?.flag || '';
   const defaultLogo = '/assets/images/logo-dark-bg.png';
@@ -94,6 +96,48 @@ function parseJsonField(value: any) {
   return value;
 }
 
+async function listStorageFilesForBundle(supabase: any, bundleSlug: string) {
+  try {
+    const { data, error } = await supabase.storage
+      .from(DEFAULT_STORAGE_BUCKET)
+      .list(bundleSlug, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'name', order: 'asc' },
+      });
+
+    if (error || !data || data.length === 0) {
+      return [];
+    }
+
+    return data
+      .filter((file: any) => file.name)
+      .map((file: any) => {
+        const path = `${bundleSlug}/${file.name}`;
+        const filename = file.name;
+        const label = filename
+          .replace(/\.[^/.]+$/, '')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\d+/g, '')
+          .trim();
+        const { data: publicUrlData } = supabase.storage
+          .from(DEFAULT_STORAGE_BUCKET)
+          .getPublicUrl(path);
+
+        return {
+          label: label || filename,
+          name: filename,
+          type: file.metadata?.contentType || 'application/octet-stream',
+          size: file.size || 0,
+          path,
+          url: publicUrlData?.publicUrl,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function fetchProductsWithMetadata(supabase: any) {
   const selectFields = '*';
 
@@ -101,13 +145,150 @@ async function fetchProductsWithMetadata(supabase: any) {
     .from('products')
     .select(selectFields)
     .eq('is_active', true)
+    .neq('product_label', 'Individual Bundle')
     .order('created_at', { ascending: false });
 
   if (error) {
     return { data: null, error };
   }
 
-  const products = (data || []).map((product: any) => {
+  // Additional filter for products that might have is_individual in metadata
+  const filteredData = (data || []).filter((product: any) => {
+    const metadata = parseJsonField(product.metadata);
+    return !metadata?.is_individual;
+  });
+
+  const products = filteredData.map((product: any) => {
+    const metadata = parseJsonField(product.metadata);
+    const features = parseJsonField(product.features);
+    const normalizedMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
+    const explicitTags = parseJsonField(product.tags);
+    const explicitMetadata: any = {
+      state: product.state || normalizedMetadata?.state,
+      code: product.code || normalizedMetadata?.code,
+      program: product.program || normalizedMetadata?.program,
+      productLabel: product.product_label || normalizedMetadata?.productLabel,
+      tags: Array.isArray(explicitTags)
+        ? explicitTags
+        : normalizedMetadata?.tags || [],
+    };
+    const normalizedFeatures = Array.isArray(features) ? features : [];
+    const derivedMetadata = deriveMetadataFromName(product);
+    const mergedMetadata = normalizedMetadata
+      ? { ...derivedMetadata, ...normalizedMetadata, ...explicitMetadata }
+      : { ...derivedMetadata, ...explicitMetadata };
+
+    return {
+      ...product,
+      metadata: mergedMetadata,
+      features: normalizedFeatures,
+    };
+  });
+
+  return { data: products, error: null };
+}
+
+async function fetchIndividualBundlesForState(supabase: any, state: string) {
+  const normalizedState = state.trim();
+  const matchedState = states.find(
+    (s) => s.name.toLowerCase() === normalizedState.toLowerCase(),
+  );
+  const stateCode =
+    matchedState?.code ||
+    (normalizedState.length === 2 ? normalizedState.toUpperCase() : undefined);
+  const exactState = matchedState?.name || normalizedState;
+  const stateSlug = exactState
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+
+  const hydrateProductWithStorageFiles = async (product: any) => {
+    const metadata = parseJsonField(product.metadata);
+    if (Array.isArray(metadata?.files) && metadata.files.length > 0) {
+      return product;
+    }
+    if (!product.product_slug) {
+      return null;
+    }
+
+    const storageFiles = await listStorageFilesForBundle(supabase, product.product_slug);
+    if (storageFiles.length === 0) {
+      return null;
+    }
+
+    return {
+      ...product,
+      metadata: {
+        ...metadata,
+        files: storageFiles,
+      },
+    };
+  };
+
+  const queryBuilders = [
+    () => supabase.from('products').select('*').eq('is_active', true).eq('state', exactState),
+    () => supabase.from('products').select('*').eq('is_active', true).ilike('state', exactState),
+    ...(stateCode
+      ? [
+          () => supabase.from('products').select('*').eq('is_active', true).eq('code', stateCode),
+        ]
+      : []),
+    () => supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Individual Bundle`),
+    () => supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Complete Bundle`),
+    ...(stateSlug
+      ? [
+          () => supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%individual-bundle%`),
+          () => supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%complete-bundle%`),
+        ]
+      : []),
+  ];
+
+  const combinedResults: Record<string, any> = {};
+
+  for (const builder of queryBuilders) {
+    const { data, error } = await builder();
+    if (error) {
+      return { data: null, error };
+    }
+    if (data && data.length > 0) {
+      for (const product of data) {
+        const hydrated = await hydrateProductWithStorageFiles(product);
+        if (hydrated) {
+          combinedResults[hydrated.id] = hydrated;
+        }
+      }
+    }
+  }
+
+  if (Object.keys(combinedResults).length === 0) {
+    const fallbackConditions = [
+      `state.ilike.%${exactState}%`,
+      `name.ilike.%${exactState}%`,
+      `product_slug.ilike.%${stateSlug}%`,
+      ...(stateCode ? [`code.eq.${stateCode}`] : []),
+    ];
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .or(fallbackConditions.join(','));
+
+    if (error) {
+      return { data: null, error };
+    }
+    if (data && data.length > 0) {
+      data.forEach((product: any) => {
+        const metadata = parseJsonField(product.metadata);
+        if (Array.isArray(metadata?.files) && metadata.files.length > 0) {
+          combinedResults[product.id] = product;
+        }
+      });
+    }
+  }
+
+  const products = Object.values(combinedResults)
+    .map((product: any) => {
     const metadata = parseJsonField(product.metadata);
     const features = parseJsonField(product.features);
     const normalizedMetadata = metadata && typeof metadata === 'object' ? metadata : undefined;
@@ -143,8 +324,18 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServerSupabaseClient();
+  const url = new URL(request.url);
+  const includeIndividual = url.searchParams.get('includeIndividual') === 'true';
+  const state = url.searchParams.get('state');
 
-  let result = await fetchProductsWithMetadata(supabase);
+  let result;
+  if (includeIndividual && state) {
+    // Fetch individual bundles for a specific state
+    result = await fetchIndividualBundlesForState(supabase, state);
+  } else {
+    // Fetch regular products (excluding individual bundles)
+    result = await fetchProductsWithMetadata(supabase);
+  }
 
   if (result.error) {
     return NextResponse.json(

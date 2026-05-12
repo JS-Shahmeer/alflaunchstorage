@@ -56,6 +56,11 @@ function normalizeMetadata(value: any) {
       metadata.quantity != null
         ? Number(metadata.quantity) || 0
         : undefined,
+    files: Array.isArray(metadata.files) ? metadata.files : undefined,
+    is_individual:
+      metadata.is_individual === true || metadata.is_individual === 'true'
+        ? true
+        : undefined,
   };
 }
 
