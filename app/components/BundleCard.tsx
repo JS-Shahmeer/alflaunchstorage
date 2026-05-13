@@ -157,8 +157,8 @@ export default function BundleCard({
   }
 
   return (
-    <div className="relative bg-[#fffbea] border border-gray-200 rounded-2xl shadow-sm flex flex-col overflow-hidden hover:shadow-lg transition group">
-      <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400 rounded-t-2xl" />
+    <div className={`relative ${isDerivedIndividual ? 'bg-[#f7ffec]' : 'bg-[#fffbea]'} border border-gray-200 rounded-2xl shadow-sm flex flex-col overflow-hidden hover:shadow-lg transition group`}>
+      <div className={`absolute inset-x-0 top-0 h-2 ${isDerivedIndividual ? 'bg-[#C1FF71]' : 'bg-yellow-400'}`} />
       <div className="p-4 pt-6 flex flex-col flex-1">
         <div className="flex items-start justify-between mb-2 gap-1.5">
           <div className="flex items-start gap-2">

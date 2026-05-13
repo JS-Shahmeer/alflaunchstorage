@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  UploadCloud,
   User,
   User2Icon,
   Users,
@@ -156,6 +157,7 @@ export default function AdminPanelClient() {
   const [bundleFiles, setBundleFiles] =
     useState<Record<string, BundleFileInfo>>(emptyBundleFiles);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const [bundleUploadProgress, setBundleUploadProgress] = useState(0);
   const [isSavingBundle, setIsSavingBundle] = useState(false);
 
   // Individual Bundle Form State
@@ -182,6 +184,8 @@ export default function AdminPanelClient() {
   >(emptyIndividualBundleFiles);
   const [isUploadingIndividualFiles, setIsUploadingIndividualFiles] =
     useState(false);
+  const [individualUploadProgress, setIndividualUploadProgress] =
+    useState(0);
   const [isSavingIndividualBundle, setIsSavingIndividualBundle] =
     useState(false);
   const [individualBundleFormOpen, setIndividualBundleFormOpen] =
@@ -207,6 +211,50 @@ export default function AdminPanelClient() {
     bundleForm.productLabel,
     editingBundle,
   ]);
+
+  useEffect(() => {
+    let intervalId: number | undefined;
+    let resetTimeout: number | undefined;
+
+    if (isUploadingFiles) {
+      setBundleUploadProgress(12);
+      intervalId = window.setInterval(() => {
+        setBundleUploadProgress((prev) => Math.min(prev + 10, 90));
+      }, 320);
+    } else if (bundleUploadProgress > 0) {
+      setBundleUploadProgress(100);
+      resetTimeout = window.setTimeout(() => {
+        setBundleUploadProgress(0);
+      }, 600);
+    }
+
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+      if (resetTimeout) window.clearTimeout(resetTimeout);
+    };
+  }, [isUploadingFiles]);
+
+  useEffect(() => {
+    let intervalId: number | undefined;
+    let resetTimeout: number | undefined;
+
+    if (isUploadingIndividualFiles) {
+      setIndividualUploadProgress(12);
+      intervalId = window.setInterval(() => {
+        setIndividualUploadProgress((prev) => Math.min(prev + 10, 90));
+      }, 320);
+    } else if (individualUploadProgress > 0) {
+      setIndividualUploadProgress(100);
+      resetTimeout = window.setTimeout(() => {
+        setIndividualUploadProgress(0);
+      }, 600);
+    }
+
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+      if (resetTimeout) window.clearTimeout(resetTimeout);
+    };
+  }, [isUploadingIndividualFiles]);
 
   // Helper function to generate features from state
   const generateFeatures = (stateName: string): string[] => {
@@ -602,6 +650,30 @@ export default function AdminPanelClient() {
       setBundleFormOpen(false);
       setEditingBundle(null);
       await refreshBundles();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Bundle Uploaded",
+        text: "Your bundle was saved successfully. Returning to Upload Bundle...",
+        timer: 4000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#f3faf1",
+        color: "#0f172a",
+        iconColor: "#16a34a",
+      });
+
+      setActiveSection("Upload Bundle");
+      setBundleFormOpen(true);
+      setBundleForm({
+        name: "",
+        description: "",
+        price: "",
+        state: "",
+        program: "",
+        productLabel: "Complete Bundle",
+      });
+      setBundleFiles(emptyBundleFiles);
     } catch (err: any) {
       showError(err?.message || "Unable to save bundle.");
     } finally {
@@ -1609,23 +1681,34 @@ export default function AdminPanelClient() {
                               return (
                                 <div
                                   key={label}
-                                  className="block text-sm font-semibold text-slate-700"
+                                  className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
                                 >
-                                  <div>{label}</div>
-                                  <div className="mt-2 flex items-center gap-3">
-                                    <label
-                                      htmlFor={fieldId}
-                                      className="inline-flex cursor-pointer items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-emerald-500 hover:bg-emerald-50"
-                                    >
-                                      Choose file
-                                    </label>
-                                    <span className="text-xs text-slate-500">
-                                      {displayName}
-                                      {hasSavedFile && !hasNewFile
-                                        ? " (saved)"
-                                        : ""}
-                                    </span>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                      <div className="text-sm font-semibold text-slate-900">
+                                        {label}
+                                      </div>
+                                      <p className="text-xs text-slate-500">
+                                        Upload one file for this document.
+                                      </p>
+                                    </div>
+                                    
                                   </div>
+
+                                  <label
+                                    htmlFor={fieldId}
+                                    className="mt-4 flex min-h-[96px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-500 hover:bg-emerald-50"
+                                  >
+                                    <UploadCloud className="h-7 w-7 text-emerald-600" />
+                                    <span className="my-1">Choose file</span>
+                                    <span className=" text-[10px] text-slate-500">
+                                      Allowed: PDF, TXT, DOC, DOCX
+                                    </span>
+                                    <span className="mt-1 text-xs font-semibold text-slate-700">
+                                      {displayName}
+                                    </span>
+                                  </label>
+
                                   <input
                                     id={fieldId}
                                     type="file"
@@ -1660,7 +1743,17 @@ export default function AdminPanelClient() {
                                     }}
                                     className="sr-only"
                                   />
-                                  {hasSavedFile ? (
+
+                                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
+                                    
+                                    {hasSavedFile && !hasNewFile ? (
+                                      <span className="text-emerald-700">
+                                        saved
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  {hasSavedFile && !hasNewFile ? (
                                     <p className="mt-2 text-xs text-emerald-700">
                                       Existing file:{" "}
                                       <a
@@ -1679,14 +1772,16 @@ export default function AdminPanelClient() {
                           </div>
 
                           {isUploadingFiles && (
-                            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-                              <div className="flex items-center gap-3">
-                                <div className="animate-spin">
-                                  <RefreshCcw className="h-4 w-4 text-emerald-700" />
-                                </div>
-                                <p className="text-sm text-emerald-800">
-                                  Uploading files to secure storage...
-                                </p>
+                            <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                              <div className="flex items-center justify-between text-xs text-slate-600">
+                                <span>Uploading files...</span>
+                                <span>{bundleUploadProgress}%</span>
+                              </div>
+                              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                  className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+                                  style={{ width: `${bundleUploadProgress}%` }}
+                                />
                               </div>
                             </div>
                           )}
@@ -1739,7 +1834,7 @@ export default function AdminPanelClient() {
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-6">
+                    <div className="mt-6 hidden rounded-md border border-slate-200 bg-slate-50 p-6">
                       <p className="text-sm leading-6 text-slate-700">
                         Ready to upload a new bundle? Click New bundle to open
                         the upload form and publish content separately from the
@@ -1837,23 +1932,36 @@ export default function AdminPanelClient() {
                               return (
                                 <div
                                   key={label}
-                                  className="block text-sm font-semibold text-slate-700"
+                                  className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
                                 >
-                                  <div>{label}</div>
-                                  <div className="mt-2 flex items-center gap-3">
-                                    <label
-                                      htmlFor={fieldId}
-                                      className="inline-flex cursor-pointer items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-emerald-500 hover:bg-emerald-50"
-                                    >
-                                      Choose file
-                                    </label>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                      <div className="text-sm font-semibold text-slate-900">
+                                        {label}
+                                      </div>
+                                      <p className="text-xs text-slate-500">
+                                        Upload the required file for this item.
+                                      </p>
+                                    </div>
                                     <span className="text-xs text-slate-500">
                                       {displayName}
-                                      {hasSavedFile && !hasNewFile
-                                        ? " (saved)"
-                                        : ""}
                                     </span>
                                   </div>
+
+                                  <label
+                                    htmlFor={fieldId}
+                                    className="mt-4 flex min-h-[96px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-500 hover:bg-emerald-50"
+                                  >
+                                    <UploadCloud className="h-8 w-8 text-emerald-600" />
+                                    <span className="mt-3">Choose file or drag and drop here</span>
+                                    <span className="mt-2 text-xs text-slate-500">
+                                      Allowed: PDF, TXT, DOC, DOCX
+                                    </span>
+                                    <span className="mt-3 text-xs font-semibold text-slate-700">
+                                      {displayName}
+                                    </span>
+                                  </label>
+
                                   <input
                                     id={fieldId}
                                     type="file"
@@ -1888,6 +1996,16 @@ export default function AdminPanelClient() {
                                     }}
                                     className="sr-only"
                                   />
+
+                                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
+                                    <span>{displayName}</span>
+                                    {hasSavedFile && !hasNewFile ? (
+                                      <span className="text-emerald-700">
+                                        saved
+                                      </span>
+                                    ) : null}
+                                  </div>
+
                                   {hasSavedFile ? (
                                     <p className="mt-2 text-xs text-emerald-700">
                                       Existing file:{" "}
@@ -1907,14 +2025,16 @@ export default function AdminPanelClient() {
                           </div>
 
                           {isUploadingIndividualFiles && (
-                            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-                              <div className="flex items-center gap-3">
-                                <div className="animate-spin">
-                                  <RefreshCcw className="h-4 w-4 text-emerald-700" />
-                                </div>
-                                <p className="text-sm text-emerald-800">
-                                  Uploading files to secure storage...
-                                </p>
+                            <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                              <div className="flex items-center justify-between text-xs text-slate-600">
+                                <span>Uploading files...</span>
+                                <span>{individualUploadProgress}%</span>
+                              </div>
+                              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                  className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+                                  style={{ width: `${individualUploadProgress}%` }}
+                                />
                               </div>
                             </div>
                           )}

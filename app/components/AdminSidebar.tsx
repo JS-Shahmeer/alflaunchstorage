@@ -23,7 +23,7 @@ const navItems: SidebarItem[] = [
   { label: "Overview", section: "Overview", icon: BarChart3 },
   { label: "Bundles", section: "Bundles", icon: Package },
   { label: "Upload Bundle", section: "Upload Bundle", icon: HardDriveUpload, accent: "bg-emerald-500/15 text-emerald-300" },
-  { label: "Upload Individual Bundle", section: "Upload Individual Bundle", icon: UploadIcon, accent: "bg-emerald-500/15 text-emerald-300" },
+  // { label: "Upload Individual Bundle", section: "Upload Individual Bundle", icon: UploadIcon, accent: "bg-emerald-500/15 text-emerald-300" },
   { label: "Users", section: "Users", icon: Users },
   { label: "Profile Settings", section: "Profile Settings", icon: Settings },
 ];
