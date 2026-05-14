@@ -133,14 +133,14 @@ export default function BundleModal({
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="text-gray-400 text-lg line-through">
-                    ${oldPrice}
+                    ${oldPrice.toFixed(2)}
                   </span>
                   <span className="text-4xl font-bold text-green-800">
-                    ${price}
+                    ${price.toFixed(2)}
                   </span>
                 </div>
                 <span className="bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm mt-1">
-                  SAVE ${saveAmount} (56% OFF)
+                  SAVE ${saveAmount.toFixed(2)} (56% OFF)
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -214,7 +214,7 @@ export default function BundleModal({
                     <span className="">
                       $697 →{" "}
                       <span className="text-green-700 font-bold">
-                        ${coursePrice}
+                        ${coursePrice.toFixed(2)}
                       </span>{" "}
                       <span className="text-xs text-gray-500">
                         (Save $400!)
@@ -231,7 +231,7 @@ export default function BundleModal({
             className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition"
             onClick={handleAddToCart}
           >
-            Add to Cart - ${price}
+            Add to Cart - ${price.toFixed(2)}
           </button>
           <p className="text-xs text-gray-500 text-center">
             Save 56% - This offer expires when the timer hits zero

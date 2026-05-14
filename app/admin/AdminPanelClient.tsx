@@ -530,11 +530,10 @@ export default function AdminPanelClient() {
     const autoFeatures = generateFeatures(bundleForm.state);
 
     // Auto-generate product slug.
-    // For complete bundles, keep the slug tied to state + complete bundle only,
-    // so storage paths do not depend on program type.
+    // For complete bundles, include state + program + product label to ensure uniqueness
     const slugSource =
       bundleForm.productLabel === "Complete Bundle"
-        ? `${bundleForm.state} ${bundleForm.productLabel}`
+        ? `${bundleForm.state} ${bundleForm.program} ${bundleForm.productLabel}`
         : trimmedName;
     const autoSlug = slugify(slugSource);
     const bundleSlug = editingBundle?.product_slug ?? autoSlug;
@@ -1702,7 +1701,7 @@ export default function AdminPanelClient() {
                                     <UploadCloud className="h-7 w-7 text-emerald-600" />
                                     <span className="my-1">Choose file</span>
                                     <span className=" text-[10px] text-slate-500">
-                                      Allowed: PDF, TXT, DOC, DOCX
+                                      Allowed: PDF, TXT, DOC, DOCX, XLS, XLSX
                                     </span>
                                     <span className="mt-1 text-xs font-semibold text-slate-700">
                                       {displayName}
@@ -1712,7 +1711,7 @@ export default function AdminPanelClient() {
                                   <input
                                     id={fieldId}
                                     type="file"
-                                    accept=".pdf,.txt,.doc,.docx"
+                                    accept=".pdf,.txt,.doc,.docx,.xls,.xlsx"
                                     onChange={(event) => {
                                       const file =
                                         event.target.files?.[0] || null;
@@ -1787,7 +1786,7 @@ export default function AdminPanelClient() {
                           )}
 
                           <p className="mt-4 text-sm text-slate-500">
-                            Allowed formats: PDF, TXT, DOC, DOCX.
+                            Allowed formats: PDF, TXT, DOC, DOCX, XLS, XLSX.
                           </p>
                         </div>
                       </div>
@@ -1955,7 +1954,7 @@ export default function AdminPanelClient() {
                                     <UploadCloud className="h-8 w-8 text-emerald-600" />
                                     <span className="mt-3">Choose file or drag and drop here</span>
                                     <span className="mt-2 text-xs text-slate-500">
-                                      Allowed: PDF, TXT, DOC, DOCX
+                                      Allowed: PDF, TXT, DOC, DOCX, XLS, XLSX
                                     </span>
                                     <span className="mt-3 text-xs font-semibold text-slate-700">
                                       {displayName}
@@ -1965,7 +1964,7 @@ export default function AdminPanelClient() {
                                   <input
                                     id={fieldId}
                                     type="file"
-                                    accept=".pdf,.txt,.doc,.docx"
+                                    accept=".pdf,.txt,.doc,.docx,.xls,.xlsx"
                                     onChange={(event) => {
                                       const file =
                                         event.target.files?.[0] || null;
@@ -2040,7 +2039,7 @@ export default function AdminPanelClient() {
                           )}
 
                           <p className="mt-4 text-sm text-slate-500">
-                            Allowed formats: PDF, TXT, DOC, DOCX.
+                            Allowed formats: PDF, TXT, DOC, DOCX, XLS, XLSX.
                           </p>
                         </div>
                       </div>

@@ -48,16 +48,20 @@ export async function POST(request: Request) {
     } else {
       const bucketExists = buckets?.some((b) => b.name === bucket);
 
+      const allowedMimeTypes = [
+        "application/pdf",
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ];
+
       if (!bucketExists) {
         console.log(`Creating storage bucket: ${bucket}`);
         const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
           public: true,
-          allowedMimeTypes: [
-            "application/pdf",
-            "text/plain",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          ],
+          allowedMimeTypes,
           fileSizeLimit: 10485760, // 10MB
         });
 
@@ -70,6 +74,24 @@ export async function POST(request: Request) {
             },
             { status: 500 },
           );
+        }
+      } else {
+        try {
+          const { data: bucketData, error: bucketDataError } = await supabase.storage.getBucket(bucket);
+          if (!bucketDataError && bucketData) {
+            const publicFlag = bucketData.public ?? true;
+            const fileSizeLimit = bucketData.file_size_limit ?? 10485760;
+            const { error: updateBucketError } = await supabase.storage.updateBucket(bucket, {
+              public: publicFlag,
+              allowedMimeTypes,
+              fileSizeLimit,
+            });
+            if (updateBucketError) {
+              console.error("Failed to update storage bucket MIME types:", updateBucketError);
+            }
+          }
+        } catch (updateError) {
+          console.error("Failed to update existing storage bucket:", updateError);
         }
       }
       bucketReady = true;
@@ -134,7 +156,9 @@ export async function POST(request: Request) {
       "application/pdf",
       "text/plain",
       "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ];
 
     if (!allowedTypes.includes(file.type)) {
