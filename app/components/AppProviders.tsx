@@ -3,6 +3,7 @@ import { CartProvider } from "./cart-context";
 import React from "react";
 import { ToastProvider } from "./SimpleToast";
 import dynamic from "next/dynamic";
+import { AuthModalProvider } from "./AuthModalContext";
 
 const AuthProvider = dynamic(() => import("./AuthContext").then(mod => ({ default: mod.AuthProvider })), {
   ssr: false,
@@ -11,12 +12,14 @@ const AuthProvider = dynamic(() => import("./AuthContext").then(mod => ({ defaul
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <ToastProvider>
-      <CartProvider>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </CartProvider>
-    </ToastProvider>
+    <AuthModalProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </AuthModalProvider>
   );
 }

@@ -264,6 +264,28 @@ export default function CheckoutClient() {
     );
   }
 
+  if (items.length === 0 && step < 4) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-md">
+          <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <LogIn size={32} className="text-green-600" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Your cart is empty</h2>
+          <p className="text-gray-600 mb-6">
+            Add a program to your cart before continuing to checkout.
+          </p>
+          <a
+            href="/shop"
+            className="w-full inline-flex justify-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+          >
+            Browse Programs
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   // Rest of the component continues...
 
   const subtotal = items.reduce(

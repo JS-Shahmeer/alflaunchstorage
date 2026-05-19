@@ -61,6 +61,7 @@ interface UserProfile {
   last_name?: string | null;
   is_admin?: boolean | null;
   created_at?: string | null;
+  is_active?: boolean;
 }
 
 export default function AdminPanelClient() {
@@ -447,6 +448,44 @@ export default function AdminPanelClient() {
       showError(err?.message || "Unable to load user profiles.");
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const handleToggleAccess = async (userId: string, currentlyActive: boolean | undefined) => {
+    const action = currentlyActive === false ? 'enable' : 'disable';
+
+    const result = await Swal.fire({
+      title: `${action === 'disable' ? 'Disable' : 'Enable'} user?`,
+      text: `This will ${action === 'disable' ? 'prevent' : 'allow'} the user from signing in. Continue?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: action === 'disable' ? 'Disable' : 'Enable',
+      confirmButtonColor: '#14532d',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await fetch('/api/admin/profiles/toggle-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update user');
+
+      // Update local state (API returns is_active)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: json.is_active } : u)));
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Updated',
+        text: `User has been ${json.is_active ? 'enabled' : 'disabled'}.`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (err: any) {
+      showError(err?.message || 'Unable to update user access.');
     }
   };
 
@@ -2141,7 +2180,7 @@ export default function AdminPanelClient() {
                             <th className="py-3 pr-4">Email</th>
                             <th className="py-3 pr-4">Role</th>
                             <th className="py-3 pr-4">Joined</th>
-                            <th className="py-3 pr-4">Status</th>
+                            <th className="py-3 pr-4">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -2161,7 +2200,7 @@ export default function AdminPanelClient() {
                                 key={userProfile.id}
                                 className="hover:bg-slate-50"
                               >
-                                <td className="py-4 pr-4 font-semibold text-slate-900">
+                                <td className="py-4 pr-4 pl-4 font-semibold text-slate-900">
                                   {fullName}
                                 </td>
                                 <td className="py-4 pr-4 text-slate-600">
@@ -2176,9 +2215,21 @@ export default function AdminPanelClient() {
                                   {joinedAt}
                                 </td>
                                 <td className="py-4 pr-4">
-                                  <span className="inline-flex rounded-md bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
-                                    Active
-                                  </span>
+                                  {userProfile.is_active === false ? (
+                                    <button
+                                      onClick={() => handleToggleAccess(userProfile.id, false)}
+                                      className="cursor-pointer transition-transform duration-200 hover:scale-110 inline-flex items-center gap-2 rounded-md bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700 hover:bg-red-100"
+                                    >
+                                      Disabled
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleToggleAccess(userProfile.id, true)}
+                                      className="cursor-pointer transition-transform duration-200 hover:scale-110 inline-flex items-center gap-2 rounded-md bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-200"
+                                    >
+                                      Activated
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             );

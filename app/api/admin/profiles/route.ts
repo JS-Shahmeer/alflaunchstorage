@@ -10,15 +10,18 @@ export async function GET() {
   }
 
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
+  // Fetch profiles from the public table
+  const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, email, first_name, last_name, is_admin, created_at')
+    .select('id, email, first_name, last_name, is_admin, created_at, is_active')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (profilesError) {
+    return NextResponse.json({ error: profilesError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: data ?? [] });
+  // Return profiles including is_active flag (true = activated)
+  const users = (profiles ?? []).map((p: any) => ({ ...p, is_active: p.is_active !== false }));
+  return NextResponse.json({ users });
 }

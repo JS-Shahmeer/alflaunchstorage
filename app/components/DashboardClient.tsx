@@ -8,12 +8,16 @@ import {
   CreditCard,
   DownloadCloud,
   ExternalLink,
+  Eye,
+  EyeOff,
   Package,
   ShieldCheck,
   Sparkles,
   User,
 } from "lucide-react";
 import Link from "next/link";
+import Swal from "sweetalert2";
+import { useAuth } from "./AuthContext";
 import { supabase } from "../../utils/supabase";
 
 interface DashboardClientProps {
@@ -37,6 +41,14 @@ export default function DashboardClient({
   const [bundleFilesMap, setBundleFilesMap] = useState<Record<string, any[]>>(
     {},
   );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const { updatePassword } = useAuth();
 
   const activeBundles = useMemo(
     () => userProducts.filter((item) => item.products?.type === "bundle"),
@@ -155,6 +167,65 @@ export default function DashboardClient({
     [activeBundlesWithFiles],
   );
 
+  const handlePasswordUpdate = async () => {
+    if (newPassword !== confirmPassword) {
+      await Swal.fire({
+        icon: "error",
+        title: "Password mismatch",
+        text: "New password and confirmation do not match.",
+        background: "#ffffff",
+        color: "#0f172a",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      await Swal.fire({
+        icon: "error",
+        title: "Choose a stronger password",
+        text: "Password must be at least 6 characters.",
+        background: "#ffffff",
+        color: "#0f172a",
+      });
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const { error } = await updatePassword(currentPassword, newPassword);
+      if (error) {
+        throw error;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Password updated",
+        text: "Your password has been changed successfully.",
+        timer: 2200,
+        showConfirmButton: false,
+        background: "#ffffff",
+        color: "#0f172a",
+      });
+    } catch (err: any) {
+      await Swal.fire({
+        icon: "error",
+        title: "Unable to update password",
+        text: err?.message || "Please try again.",
+        background: "#ffffff",
+        color: "#0f172a",
+      });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   const quickStats = [
     {
       label: "Bundles active",
@@ -229,17 +300,17 @@ export default function DashboardClient({
                 return (
                   <div
                     key={stat.label}
-                    className="rounded-md border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="rounded-md border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     <div
-                      className={`inline-flex h-12 w-12 items-center justify-center rounded-md ${stat.color}`}
+                      className={`inline-flex h-10 w-10 items-center justify-center rounded-md ${stat.color}`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {stat.label}
                     </p>
-                    <p className="mt-3 text-3xl font-semibold text-slate-950">
+                    <p className="mt-3 text-2xl font-semibold text-slate-950">
                       {stat.value}
                     </p>
                   </div>
@@ -441,10 +512,100 @@ export default function DashboardClient({
                     <p className="mt-1 text-emerald-700">Active member</p>
                   </div>
                 </div>
+
+                <div className="rounded-md bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-900 text-sm">
+                    Current password
+                  </p>
+                  <p className="mt-1 text-[9px] text-slate-500">
+                    Enter the password you set when creating your account.
+                  </p>
+                  <div className="relative mt-2">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter your current password"
+                      className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 pr-12 text-[10px] text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-emerald-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-900 text-sm">New password</p>
+                    <div className="relative mt-2">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 pr-12 text-[10px] text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-emerald-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-900 text-sm">
+                      Confirm new password
+                    </p>
+                    <div className="relative mt-2">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="w-full rounded-md border border-slate-300 bg-white px-4 py-3 pr-12 text-[10px] text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-emerald-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePasswordUpdate}
+                  disabled={savingPassword}
+                  className="inline-flex w-full cursor-pointer items-center justify-center rounded-md bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingPassword ? "Saving..." : "Update password"}
+                </button>
               </div>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
+            {/* <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -475,7 +636,7 @@ export default function DashboardClient({
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
             <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">

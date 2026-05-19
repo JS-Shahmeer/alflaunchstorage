@@ -1,6 +1,8 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { useToast } from "./SimpleToast";
+import { useAuth } from "./AuthContext";
+import { useAuthModal } from "./AuthModalContext";
 
 export type CartItem = {
   id: string;
@@ -43,6 +45,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const isHydrated = useRef(false);
   const toast = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const { openAuthModal } = useAuthModal();
 
   // Hydration marker for localStorage saves
   useEffect(() => {
@@ -57,18 +61,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   function addItem(item: CartItem) {
+    if (!user && !authLoading) {
+      toast.show("Please log in or sign up to add items to your cart.");
+      openAuthModal();
+      return;
+    }
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      let updated;
+      const itemId = item.id || item.name;
+      const existing = prev.find((i) => i.id === itemId);
       if (existing) {
-        updated = prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: (i.quantity || 1) + 1 } : i
-        );
-      } else {
-        updated = [...prev, { ...item, quantity: 1 }];
+        toast.show("This product is already in your cart. Only one purchase per program is allowed.");
+        return prev;
       }
-      setLastAdded(item.name);
-      return updated;
+
+      const addedItem = { ...item, id: itemId, quantity: 1 };
+      setLastAdded(addedItem.name);
+      return [...prev, addedItem];
     });
   }
   React.useEffect(() => {

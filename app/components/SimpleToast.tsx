@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 
 const ToastContext = createContext({ show: (msg: string) => {} });
 
@@ -9,11 +9,29 @@ export function useToast() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+  const showTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (showTimerRef.current) window.clearTimeout(showTimerRef.current);
+      if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   const show = useCallback((msg: string) => {
-    setMessage(msg);
-    setVisible(true);
-    setTimeout(() => setVisible(false), 4000);
+    if (showTimerRef.current) {
+      window.clearTimeout(showTimerRef.current);
+    }
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current);
+    }
+
+    showTimerRef.current = window.setTimeout(() => {
+      setMessage(msg);
+      setVisible(true);
+      hideTimerRef.current = window.setTimeout(() => setVisible(false), 4000);
+    }, 0);
   }, []);
 
   return (

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
 import { useToast } from './SimpleToast';
+import Swal from 'sweetalert2';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { signIn, signUp } = useAuth();
   const toast = useToast();
 
@@ -31,13 +33,70 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (error) throw error;
         toast.show('Successfully signed in!');
         onClose();
-        router.push('/dashboard');
+        const destination = pathname?.startsWith('/admin')
+          ? '/admin'
+          : pathname?.startsWith('/dashboard')
+          ? '/dashboard'
+          : pathname || '/dashboard';
+        router.replace(destination);
       } else {
+        // First, ask the server if this email already exists to avoid ambiguous Supabase behaviour
+        try {
+          const res = await fetch('/api/check-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const json = await res.json();
+          if (json?.exists) {
+            await Swal.fire({
+              title: 'Account already exists',
+              text: `An account already exists for ${email}. Would you like to sign in instead?`,
+              icon: 'info',
+              showCancelButton: true,
+              confirmButtonText: 'Sign In',
+              cancelButtonText: 'Cancel',
+              confirmButtonColor: '#417a5a',
+              background: '#ffffff',
+              color: '#0f172a',
+            });
+            setIsLogin(true);
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          // If the check failed, continue with the signup attempt and let supabase respond.
+          console.warn('Email existence check failed, continuing to signup', err);
+        }
+
         const { error } = await signUp(email, password, {
           first_name: firstName,
           last_name: lastName,
         });
-        if (error) throw error;
+
+        if (error) {
+          const msg = (error?.message || '').toString();
+          const isExists = /already|registered|duplicate|exists?/i.test(msg);
+          if (isExists) {
+            await Swal.fire({
+              title: 'Account already exists',
+              text: `An account already exists for ${email}. Would you like to sign in instead?`,
+              icon: 'info',
+              showCancelButton: true,
+              confirmButtonText: 'Sign In',
+              cancelButtonText: 'Cancel',
+              confirmButtonColor: '#417a5a',
+              background: '#ffffff',
+              color: '#0f172a',
+            });
+            setIsLogin(true);
+            setLoading(false);
+            return;
+          }
+
+          throw error;
+        }
+
         toast.show('Check your email for the confirmation link!');
         onClose();
       }

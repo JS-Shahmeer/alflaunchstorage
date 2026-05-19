@@ -17,6 +17,7 @@ interface AuthContextType {
     first_name?: string | null;
     last_name?: string | null;
   }) => Promise<any>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<any>;
   profileStatus: 'idle' | 'loading' | 'success' | 'failed';
 }
 
@@ -212,6 +213,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
+
+    if (error || !data) return { data, error };
+
+    // After sign in, check profiles.is_active for this user and block if disabled
+    try {
+      const userId = data.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
+      if (userId) {
+        const { data: profileData, error: profileErr } = await supabase
+          .from('profiles')
+          .select('is_active')
+          .eq('id', userId)
+          .single();
+
+        if (!profileErr && profileData && profileData.is_active === false) {
+          await supabase.auth.signOut();
+          return { data: null, error: { message: 'This account has been disabled by an administrator.' } };
+        }
+      }
+    } catch (err) {
+      console.warn('Unable to verify profile is_active after sign-in', err);
+    }
+
+    return { data, error };
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    if (!supabase || !user) {
+      return { data: null, error: { message: 'Authentication not configured' } };
+    }
+
+    if (!currentPassword || !newPassword) {
+      return { data: null, error: { message: 'Please enter your current password and a new password.' } };
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email || '',
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      return { data: null, error: { message: 'Current password is incorrect.' } };
+    }
+
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
     return { data, error };
   };
 
@@ -276,6 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     updateProfile,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

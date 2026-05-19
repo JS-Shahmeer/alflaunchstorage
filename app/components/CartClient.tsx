@@ -18,6 +18,7 @@ export default function CartClient() {
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+  const formattedSubtotal = subtotal.toFixed(2);
   // For demo, promo code does nothing
 
   const handleRemoveItem = async (itemId: string, itemName: string) => {
@@ -90,7 +91,6 @@ export default function CartClient() {
                     <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded">PDF</span>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-gray-400 line-through">${item.price + 1288}</span>
                     <span className="text-2xl font-bold text-gray-900">${item.price}</span>
                   </div>
                 </div>
@@ -127,11 +127,11 @@ export default function CartClient() {
         </div>
         <div className="flex justify-between text-sm mb-2">
           <span className="text-black">Subtotal</span>
-          <span className="text-black">${subtotal}</span>
+          <span className="text-black">${formattedSubtotal}</span>
         </div>
         <div className="flex justify-between text-lg font-bold mb-4">
           <span className="text-black">Total</span>
-          <span className="text-black">${subtotal}</span>
+          <span className="text-black">${formattedSubtotal}</span>
         </div>
         {items.length > 0 ? (
           <a href="/checkout" className="w-full block bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-4 text-center">

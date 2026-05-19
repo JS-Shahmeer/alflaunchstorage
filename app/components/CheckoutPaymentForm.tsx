@@ -35,6 +35,12 @@ export default function CheckoutPaymentForm({
       return;
     }
 
+    if (!items || items.length === 0) {
+      setError('Your cart is empty. Please add a program before proceeding to payment.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",

@@ -20,6 +20,8 @@ export default function CartModal({
     0,
   );
 
+  const formattedSubtotal = subtotal.toFixed(2);
+
   // Dropdown style: absolute, right-0, top-full, shadow, z-50
   return (
     <div className="absolute right-0 top-full mt-2 z-50 w-80 max-w-xs bg-white rounded-xl shadow-xl p-6 animate-fadeIn flex flex-col border border-gray-200">
@@ -71,7 +73,7 @@ export default function CartModal({
           </div>
           <div className="flex justify-between font-semibold mt-2 mb-4">
             <span className="text-black">Subtotal</span>
-            <span className="text-black">${subtotal}</span>
+            <span className="text-black">${formattedSubtotal}</span>
           </div>
           <div className="flex gap-2">
             <a

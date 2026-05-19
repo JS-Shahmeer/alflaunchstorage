@@ -14,6 +14,7 @@ import Image from "next/image";
 import LogoImg from "@/public/assets/images/logo-dark-bg.png";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./SimpleToast";
+import { useAuthModal } from "./AuthModalContext";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -28,11 +29,11 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { items } = useCart();
+  const { authModalOpen, openAuthModal, closeAuthModal } = useAuthModal();
   const cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const pathname = usePathname();
   const router = useRouter();
@@ -204,7 +205,7 @@ const Header = () => {
             ) : (
               <button
                 type="button"
-                onClick={() => setAuthOpen(true)}
+                onClick={() => openAuthModal()}
                 className="bg-green-700 cursor-pointer hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition"
               >
                 Sign In
@@ -374,7 +375,7 @@ const Header = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setAuthOpen(true);
+                    openAuthModal();
                     setMenuOpen(false);
                   }}
                   className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg transition text-sm"
@@ -423,7 +424,7 @@ const Header = () => {
         </div>
       </header>
       {/* Auth Modal */}
-      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal isOpen={authModalOpen} onClose={closeAuthModal} />
     </>
   );
 };
