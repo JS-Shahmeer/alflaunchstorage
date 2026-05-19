@@ -17,6 +17,7 @@ interface BundleModalProps {
   open: boolean;
   onClose: () => void;
   bundleTitle: string;
+  productSlug?: string;
   price: number;
   oldPrice: number;
   saveAmount: number;
@@ -29,6 +30,7 @@ export default function BundleModal({
   open,
   onClose,
   bundleTitle,
+  productSlug,
   price,
   oldPrice,
   saveAmount,
@@ -55,7 +57,7 @@ export default function BundleModal({
 
   function handleAddToCart() {
     addItem({
-      id: `bundle-${bundleTitle}`,
+      id: productSlug || `bundle-${bundleTitle}`,
       name: bundleTitle,
       price,
       type: "Bundle",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Bookmark,
@@ -12,8 +12,9 @@ import {
   ShieldCheck,
   Sparkles,
   User,
-} from 'lucide-react';
-import Link from 'next/link';
+} from "lucide-react";
+import Link from "next/link";
+import { supabase } from "../../utils/supabase";
 
 interface DashboardClientProps {
   user: any;
@@ -28,237 +29,496 @@ export default function DashboardClient({
   userProducts,
   purchases,
 }: DashboardClientProps) {
-
   const activeCourses = useMemo(
-    () => userProducts.filter((item) => item.products.type === 'course'),
-    [userProducts]
+    () => userProducts.filter((item) => item.products.type === "course"),
+    [userProducts],
+  );
+
+  const [bundleFilesMap, setBundleFilesMap] = useState<Record<string, any[]>>(
+    {},
   );
 
   const activeBundles = useMemo(
-    () => userProducts.filter((item) => item.products.type === 'bundle'),
-    [userProducts]
+    () => userProducts.filter((item) => item.products?.type === "bundle"),
+    [userProducts],
+  );
+
+  useEffect(() => {
+    const fetchBundleFiles = async () => {
+      if (!supabase || activeBundles.length === 0) {
+        return;
+      }
+
+      const bundlesNeedingFiles = activeBundles.filter((bundle) => {
+        const metadataFiles = bundle.products?.metadata?.files;
+        return (
+          (!Array.isArray(metadataFiles) || metadataFiles.length === 0) &&
+          !!bundle.products?.product_slug
+        );
+      });
+
+      if (bundlesNeedingFiles.length === 0) {
+        return;
+      }
+
+      const client = supabase;
+      const bundleFiles = await Promise.all(
+        bundlesNeedingFiles.map(async (bundle) => {
+          if (!client) {
+            return { id: bundle.id, files: [] };
+          }
+
+          const { data, error } = await client.storage
+            .from(
+              process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "bundle-files",
+            )
+            .list(bundle.products.product_slug, {
+              limit: 100,
+              offset: 0,
+              sortBy: { column: "name", order: "asc" },
+            });
+
+          if (error || !data) {
+            return { id: bundle.id, files: [] };
+          }
+
+          const files = data
+            .filter((file: any) => file?.name)
+            .map((file: any) => {
+              const path = `${bundle.products.product_slug}/${file.name}`;
+              const filename = file.name;
+              const label = filename
+                .replace(/\.[^/.]+$/, "")
+                .replace(/[-_]+/g, " ")
+                .replace(/\d+/g, "")
+                .trim();
+              const { data: publicUrlData } = client.storage
+                .from(
+                  process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ||
+                    "bundle-files",
+                )
+                .getPublicUrl(path);
+
+              return {
+                label: label || filename,
+                name: filename,
+                type: file.metadata?.contentType || "application/octet-stream",
+                size: file.size || 0,
+                path,
+                url: publicUrlData?.publicUrl,
+              };
+            });
+
+          return { id: bundle.id, files };
+        }),
+      );
+
+      setBundleFilesMap((prev) => ({
+        ...prev,
+        ...bundleFiles.reduce(
+          (acc, curr) => {
+            if (curr.files.length > 0) {
+              acc[curr.id] = curr.files;
+            }
+            return acc;
+          },
+          {} as Record<string, any[]>,
+        ),
+      }));
+    };
+
+    fetchBundleFiles();
+  }, [activeBundles]);
+
+  const activeBundlesWithFiles = useMemo(
+    () =>
+      activeBundles.map((bundle) => {
+        const metadataFiles = bundle.products?.metadata?.files;
+        const storedFiles = bundleFilesMap[bundle.id] || [];
+        return {
+          ...bundle,
+          bundleFiles:
+            Array.isArray(metadataFiles) && metadataFiles.length > 0
+              ? metadataFiles
+              : storedFiles,
+        };
+      }),
+    [activeBundles, bundleFilesMap],
+  );
+
+  const totalResources = useMemo(
+    () =>
+      activeBundlesWithFiles.reduce(
+        (sum, bundle) => sum + (bundle.bundleFiles?.length || 0),
+        0,
+      ),
+    [activeBundlesWithFiles],
   );
 
   const quickStats = [
     {
-      label: 'Courses owned',
-      value: activeCourses.length,
-      icon: Package,
-      color: 'bg-emerald-100 text-emerald-700',
-    },
-    {
-      label: 'Bundles active',
+      label: "Bundles active",
       value: activeBundles.length,
       icon: Sparkles,
-      color: 'bg-lime-100 text-lime-700',
+      color: "bg-lime-100 text-lime-700",
     },
     {
-      label: 'Purchases',
+      label: "Purchases",
       value: purchases.length,
       icon: CreditCard,
-      color: 'bg-sky-100 text-sky-700',
+      color: "bg-sky-100 text-sky-700",
     },
     {
-      label: 'Resources',
-      value: userProducts.length * 3,
+      label: "Resources",
+      value: totalResources,
       icon: DownloadCloud,
-      color: 'bg-violet-100 text-violet-700',
+      color: "bg-violet-100 text-violet-700",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f3f8f5] md:pt-24 pt-32 pb-10">
+    <div className="min-h-screen bg-slate-50 md:pt-28 pt-32 pb-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-4xl border border-emerald-200 bg-linear-to-br from-[#ebf8f1] via-[#f7fff8] to-[#e9f5ec] p-8 shadow-[0_25px_80px_rgba(15,57,34,0.12)] overflow-hidden mb-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="overflow-hidden rounded-xl bg-linear-to-br from-emerald-900 via-slate-950 to-slate-900 px-6 py-8 shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:px-10 sm:py-12">
+          <div className="grid gap-8 lg:grid-cols-[1.6fr_0.9fr] lg:items-center">
             <div className="max-w-3xl">
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-900/10 px-4 py-2 text-sm font-semibold text-emerald-900">
-                <User className="h-4 w-4" /> Customer Panel
+              <span className="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm tracking-[0.18em] text-emerald-200 backdrop-blur">
+                <User className="h-4 w-4" /> Customer Dashboard
               </span>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-                Customer's Own Command Center
+              <h1 className="mt-6 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                Welcome back, {profile?.first_name || "Customer"}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-8 text-slate-700">
-                Access your purchased courses, bundles, receipts, and secure resource downloads from one beautiful dashboard.
+              <p className="mt-4 max-w-2xl text-base text-emerald-100">
+                Your purchased bundles and secure downloads are ready.
+                Everything you own is organized in one modern command center.
               </p>
             </div>
 
-            {/* <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-2"> */}
-            <div className="flex items-center justify-center">
-              {/* <Link href="/course" className="inline-flex items-center justify-center rounded-3xl bg-[#2F5D46] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/10 transition hover:bg-[#254A38]">
-                Go to Courses
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link> */}
-              <Link href="/shop" className="inline-flex hover:shadow-md items-center justify-center rounded-3xl border border-emerald-200 bg-emerald-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:border-emerald-300 hover:text-emerald-900 hover:bg-emerald-50">
-                Browse More
-              </Link>
-              {/* <Link href="/dashboard" className="inline-flex items-center justify-center rounded-3xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition hover:bg-slate-800">
-                Manage Access
-              </Link> */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-md bg-white/10 p-5 ring-1 ring-white/10 backdrop-blur-xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                  Available now
+                </p>
+                <p className="mt-3 text-3xl font-semibold text-white">
+                  {totalResources}
+                </p>
+                <p className="mt-2 text-sm text-emerald-200">
+                  Protected downloads in your purchased bundles
+                </p>
+              </div>
+              <div className="rounded-md bg-white/10 p-5 ring-1 ring-white/10 backdrop-blur-xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                  Active bundles
+                </p>
+                <p className="mt-3 text-3xl font-semibold text-white">
+                  {activeBundles.length}
+                </p>
+                <p className="mt-2 text-sm text-emerald-200">
+                  Bundle access granted by purchase
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="mt-10 grid gap-6 xl:grid-cols-[1.3fr_0.85fr]">
           <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {quickStats.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="rounded-3xl border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,57,34,0.08)] transition hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(15,57,34,0.12)]">
-                    <div className={`inline-flex items-center justify-center rounded-2xl p-3 ${stat.color}`}>
+                  <div
+                    key={stat.label}
+                    className="rounded-md border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    <div
+                      className={`inline-flex h-12 w-12 items-center justify-center rounded-md ${stat.color}`}
+                    >
                       <Icon className="h-5 w-5" />
                     </div>
-                    <p className="mt-4 text-sm font-medium text-slate-500">{stat.label}</p>
-                    <p className="mt-2 text-3xl font-semibold text-slate-950">{stat.value}</p>
+                    <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      {stat.label}
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold text-slate-950">
+                      {stat.value}
+                    </p>
                   </div>
                 );
               })}
             </div>
 
-            <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <section className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">My Access</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">Purchased Courses & Bundles</h2>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
+                    Bundle access
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                    Purchased bundles
+                  </h2>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">
-                  <ShieldCheck className="h-4 w-4" /> Verified entitlement only
+                <div className="inline-flex items-center gap-2 rounded-md bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  <ShieldCheck className="h-4 w-4" /> Secure by purchase
                 </div>
               </div>
 
-              {userProducts.length === 0 ? (
-                <div className="mt-10 rounded-[1.8rem] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                  <Package className="mx-auto h-14 w-14 rounded-3xl bg-slate-900/5 p-3 text-slate-900" />
-                  <h3 className="mt-6 text-xl font-semibold text-slate-950">No courses yet</h3>
+              {activeBundles.length === 0 ? (
+                <div className="mt-10 rounded-md border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <Package className="mx-auto h-14 w-14 rounded-md bg-slate-900/5 p-3 text-slate-900" />
+                  <h3 className="mt-6 text-xl font-semibold text-slate-950">
+                    No bundle purchases yet
+                  </h3>
                   <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Buy a course and your secure downloads will appear here.
+                    Purchase a bundle and your secure downloads will appear here
+                    instantly.
                   </p>
-                  <Link href="/shop" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#2F5D46] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#254A38]">
-                    Browse Courses
+                  <Link
+                    href="/shop"
+                    className="mt-6 inline-flex items-center gap-2 rounded-md bg-emerald-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                  >
+                    Explore bundles
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
               ) : (
-                <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                  {userProducts.map((userProduct) => (
-                    <div key={userProduct.id} className="group rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(15,57,34,0.08)]">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">{userProduct.products.type}</p>
-                          <h3 className="mt-3 text-xl font-semibold text-slate-950">{userProduct.products.name}</h3>
-                          <p className="mt-2 text-sm text-slate-600">{userProduct.products.description}</p>
-                        </div>
-                        <div className="rounded-3xl bg-white p-3 shadow-sm">
-                          <Bookmark className="h-5 w-5 text-emerald-800" />
-                        </div>
-                      </div>
+                <div className="mt-6 grid gap-5">
+                  {activeBundlesWithFiles.map((userProduct) => {
+                    const files = userProduct.bundleFiles || [];
+                    const bundleLabel =
+                      userProduct.products?.product_label ||
+                      userProduct.products?.metadata?.productLabel ||
+                      userProduct.products?.type;
 
-                      <div className="mt-5 space-y-3 text-sm text-slate-600">
-                        {userProduct.products.features?.slice(0, 3).map((feature: string, index: number) => (
-                          <div key={index} className="flex items-center gap-3 rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800">{index + 1}</span>
-                            {feature}
+                    return (
+                      <div
+                        key={userProduct.id}
+                        className="overflow-hidden rounded-md border border-slate-200 bg-slate-50 shadow-sm"
+                      >
+                        <div className="bg-linear-to-r from-emerald-900 to-slate-950 px-6 py-5 text-white">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <span className="inline-flex rounded-md bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                                {bundleLabel}
+                              </span>
+                              <h3 className="mt-4 text-2xl font-semibold">
+                                {userProduct.products.name}
+                              </h3>
+                              <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-200 capitalize">
+                                {userProduct.products.description}
+                              </p>
+                            </div>
+                            {/* <div className="rounded-md bg-white/10 px-4 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-white/10">
+                              Purchased bundle
+                            </div> */}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                        <div className="p-6 bg-emerald-50">
+                          {/* <div className="grid gap-3 sm:grid-cols-2 mb-4">
+                            {userProduct.products.features
+                              ?.slice(0, 3)
+                              .map((feature: string, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 rounded-md bg-white px-4 py-4 shadow-sm"
+                                >
+                                  <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-900 text-sm font-semibold">
+                                    {index + 1}
+                                  </div>
+                                  <p className="text-sm text-slate-700">
+                                    {feature}
+                                  </p>
+                                </div>
+                              ))}
+                          </div> */}
 
-                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        {userProduct.products.type === 'course' && (
-                          <Link href="/course" className="inline-flex min-w-42.5 items-center justify-center gap-2 rounded-full bg-[#2F5D46] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#254A38]">
-                            <ExternalLink className="h-4 w-4" />
-                            Access Course
-                          </Link>
-                        )}
-                        <button className="inline-flex min-w-42.5 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-100">
-                          <DownloadCloud className="h-4 w-4" />
-                          Download Resources
-                        </button>
+                          {files.length > 0 ? (
+                            <div className="rounded-md border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Bundle downloads
+                                  </p>
+                                  <p className="mt-1 text-sm text-slate-600">
+                                    Download every file included in this
+                                    purchase.
+                                  </p>
+                                </div>
+                                <span className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                  {files.length} file
+                                  {files.length === 1 ? "" : "s"} ready
+                                </span>
+                              </div>
+                              <div className="mt-5 grid gap-3">
+                                {files.map((file: any, index: number) => {
+                                  const fileLabel =
+                                    file.label ||
+                                    file.name ||
+                                    `Resource ${index + 1}`;
+                                  const fileSize = file.size
+                                    ? `${(file.size / 1024).toFixed(1)} KB`
+                                    : null;
+                                  const fileType = file.type || "Download";
+
+                                  return (
+                                    <a
+                                      key={`${userProduct.id}-${index}`}
+                                      href={file.url || file.path || "#"}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      download={Boolean(file.url)}
+                                      className="group flex flex-col gap-3 rounded-md border border-slate-200 bg-white px-4 py-4 transition hover:border-emerald-300 hover:bg-emerald-50 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-slate-950 capitalize">
+                                          {fileLabel}
+                                        </p>
+                                        {/* <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
+                                          <span>{fileSize || fileType}</span>
+                                          {fileSize && file.type && <span>{fileType}</span>}
+                                        </div> */}
+                                      </div>
+                                      <span className="inline-flex items-center gap-2 rounded-md bg-emerald-900 px-3 py-2 text-xs font-semibold text-white transition group-hover:bg-emerald-800">
+                                        <DownloadCloud className="h-4 w-4" />
+                                        Download
+                                      </span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-6 rounded-md border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+                              <p className="font-semibold text-slate-900">
+                                No downloadable files found
+                              </p>
+                              <p className="mt-2">
+                                This purchase doesn't include file downloads.
+                                Contact support to enable your resources.
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
-            </div>
-
-            <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Purchase activity</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">Recent Transactions</h2>
-                </div>
-                <Link href="/checkout" className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-                  View all orders
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-5 py-4 text-xs uppercase tracking-[0.22em] text-slate-400 sm:grid-cols-4">
-                  <span>Order</span>
-                  <span>Date</span>
-                  <span>Total</span>
-                  <span>Status</span>
-                </div>
-                <div className="space-y-3 px-5 pb-5 pt-2">
-                  {purchases.slice(0, 4).map((purchase) => (
-                    <div key={purchase.id} className="grid grid-cols-2 items-center gap-x-6 gap-y-3 rounded-3xl bg-white px-5 py-4 shadow-sm sm:grid-cols-4">
-                      <div className="font-medium text-slate-900">#{purchase.id.slice(-8)}</div>
-                      <div className="text-sm text-slate-600">{new Date(purchase.created_at).toLocaleDateString()}</div>
-                      <div className="text-sm font-semibold text-slate-900">${purchase.amount?.toFixed(2)}</div>
-                      <div className="inline-flex max-w-max items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{purchase.status}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Welcome</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">{profile?.first_name || user.email}</h2>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                    Profile
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                    {profile?.first_name || user.email}
+                  </h2>
                 </div>
-                <div className="rounded-3xl bg-emerald-100 p-3 text-emerald-900">
+                <div className="rounded-md bg-emerald-100 p-3 text-emerald-900">
                   <User className="h-5 w-5" />
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 text-sm text-slate-600">
-                <div className="rounded-3xl bg-slate-50 p-4">
+                <div className="rounded-md bg-slate-50 p-4">
                   <p className="font-semibold text-slate-900">Email</p>
                   <p className="mt-1 break-all">{user.email}</p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="font-semibold text-slate-900">Joined</p>
-                  <p className="mt-1 text-slate-600">{new Date(user.created_at || Date.now()).toLocaleDateString()}</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="font-semibold text-slate-900">Status</p>
-                  <p className="mt-1 text-emerald-700">Active member</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-900">Joined</p>
+                    <p className="mt-1 text-slate-600">
+                      {new Date(
+                        user.created_at || Date.now(),
+                      ).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-900">Status</p>
+                    <p className="mt-1 text-emerald-700">Active member</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-4xl border border-slate-200 bg-white p-6 shadow-2xl">
-              <div className="flex items-center justify-between">
+            <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Resources</p>
-                  <h2 className="mt-2 text-xl font-bold text-slate-950">Instant access</h2>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Support
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                    Need help?
+                  </h2>
                 </div>
                 <ShieldCheck className="h-6 w-6 text-emerald-700" />
               </div>
 
-              <div className="mt-6 grid gap-4">
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-900">Secure downloads</p>
-                  <p className="mt-2 text-sm text-slate-600">Only your purchased course materials are visible here.</p>
+              <div className="mt-6 space-y-4 text-sm text-slate-600 grid md:grid-cols-2 gap-4">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-900">
+                    Secure downloads
+                  </p>
+                  <p className="mt-2 text-xs text-slate-600">
+                    Access only the files attached to your purchased bundle.
+                  </p>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-900">Resource page</p>
-                  <p className="mt-2 text-sm text-slate-600">Quickly access files and support documents.</p>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-900">
+                    Contact support
+                  </p>
+                  <p className="mt-2 text-xs text-slate-600">
+                    Email support@example.com for resource or account questions.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-md border border-slate-200 bg-white p-6 shadow-2xl">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Purchase activity
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                  Recent transactions
+                </h2>
+              </div>
+
+              <div className="mt-6 max-h-150 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 pr-3">
+                <div className="sticky top-0 grid grid-cols-2 gap-x-6 gap-y-4 bg-slate-50 px-5 py-4 text-[9px] uppercase tracking-[0.22em] text-slate-400 sm:grid-cols-4">
+                  <span>Order</span>
+                  <span>Date</span>
+                  <span>Total</span>
+                  <span>Status</span>
+                </div>
+                <div className="space-y-3 px-5 pb-5 pt-2 max-h-40 overflow-y-auto">
+                  {purchases.length > 0 ? (
+                    purchases.map((purchase) => (
+                      <div
+                        key={purchase.id}
+                        className="grid grid-cols-2 items-center gap-x-6 gap-y-3 rounded-md bg-white px-3 py-2.5 shadow-sm sm:grid-cols-4"
+                      >
+                        <div className="font-medium text-slate-900 text-xs">
+                          #{purchase.id.slice(-8)}
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          {new Date(purchase.created_at).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs font-semibold text-slate-900">
+                          ${purchase.amount?.toFixed(2)}
+                        </div>
+                        <div className="inline-flex max-w-max items-center text-[9px] font-semibold text-emerald-700">
+                          {purchase.status}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-5 py-8 text-center text-sm text-slate-600">
+                      <p>No transactions yet</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

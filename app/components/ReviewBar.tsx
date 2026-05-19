@@ -5,7 +5,7 @@ import { Star } from "lucide-react";
 export default function ReviewBar() {
   return (
     <div className="w-full bg-[#E9ECEA] border-b border-gray-200">
-      <div className="max-w-7xl mx-auto py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm md:text-base">
+      <div className="max-w-7xl mx-auto py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm md:text-base px-6">
         {/* Left Text */}
         <p className="text-gray-700 font-medium text-center sm:text-left">
           Trusted by facility owners in all{" "}

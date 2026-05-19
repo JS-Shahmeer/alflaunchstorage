@@ -15,7 +15,7 @@ export default function ShopPageBanner() {
   return (
     <>
       <section className="bg-green-800 text-white pb-16 pt-28 min-h-[300px]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start justify-between gap-4 md:px-0 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start justify-between gap-4 px-4">
           <div>
             <h1
               ref={headingRef}

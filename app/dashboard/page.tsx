@@ -43,6 +43,8 @@ export default function DashboardPage() {
           .from('user_products')
           .select(`
             id,
+            product_id,
+            purchase_id,
             granted_at,
             is_active,
             products (
@@ -50,7 +52,10 @@ export default function DashboardPage() {
               name,
               description,
               type,
-              features
+              features,
+              product_slug,
+              product_label,
+              metadata
             )
           `)
           .eq('user_id', user.id)

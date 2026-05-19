@@ -56,7 +56,7 @@ export default function CompareModal({
 
   function handleAddCompleteBundle() {
     addItem({
-      id: `complete-bundle-${stateName.toLowerCase().replace(/\s+/g, "-")}`,
+      id: currentProduct.product_slug || `complete-bundle-${stateName.toLowerCase().replace(/\s+/g, "-")}`,
       name: bundleTitle,
       price: bundlePrice,
       type: "Complete Bundle",

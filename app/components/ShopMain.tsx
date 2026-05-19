@@ -490,6 +490,7 @@ export default function ShopMain() {
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             bundleTitle={modalProduct.name}
+            productSlug={modalProduct.product_slug}
             price={modalProduct.price}
             oldPrice={modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8}
             saveAmount={(modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8) - modalProduct.price}

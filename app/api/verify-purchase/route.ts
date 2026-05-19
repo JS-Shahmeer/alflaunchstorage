@@ -8,6 +8,53 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
   : null;
 
+async function resolveProductForItem(supabase: any, item: any) {
+  const watchFields: string[] = [];
+  if (item.product_slug) watchFields.push(`product_slug.eq.${item.product_slug}`);
+  if (item.name) watchFields.push(`name.eq.${item.name}`);
+  if (item.stripe_price_id) watchFields.push(`stripe_price_id.eq.${item.stripe_price_id}`);
+
+  if (watchFields.length === 0) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from('products')
+    .select('id, product_slug, name, stripe_product_id, stripe_price_id')
+    .or(watchFields.join(','))
+    .maybeSingle();
+
+  return data;
+}
+
+async function grantAccessForPurchase(supabase: any, userId: string, purchaseId: string, items: any[]) {
+  const results: any[] = [];
+
+  for (const item of items) {
+    const product = await resolveProductForItem(supabase, item);
+    if (!product?.id) {
+      results.push({ item, success: false, reason: 'Unable to resolve product' });
+      continue;
+    }
+
+    const { error } = await supabase.from('user_products').upsert({
+      user_id: userId,
+      product_id: product.id,
+      purchase_id: purchaseId,
+      granted_at: new Date().toISOString(),
+      is_active: true,
+    });
+
+    if (error) {
+      results.push({ item, product_id: product.id, success: false, error });
+    } else {
+      results.push({ item, product_id: product.id, success: true });
+    }
+  }
+
+  return results;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Check if Supabase is configured
@@ -59,6 +106,7 @@ export async function GET(request: NextRequest) {
         status,
         created_at,
         user_id,
+        metadata,
         user_products (
           product_id,
           products (
@@ -125,6 +173,14 @@ export async function GET(request: NextRequest) {
       }
 
       purchase = insertedPurchase;
+
+      const grantResults = await grantAccessForPurchase(
+        supabase,
+        user.id,
+        purchase.id,
+        items,
+      );
+      console.log('verify-purchase granted access for fallback purchase:', grantResults);
     }
 
     if (purchase.status !== 'completed') {
@@ -132,6 +188,20 @@ export async function GET(request: NextRequest) {
         { error: "Purchase is not completed" },
         { status: 400 }
       );
+    }
+
+    if ((!purchase.user_products || purchase.user_products.length === 0) && purchase.metadata?.items) {
+      const items = Array.isArray(purchase.metadata.items)
+        ? purchase.metadata.items
+        : JSON.parse(purchase.metadata.items || '[]');
+
+      const grantResults = await grantAccessForPurchase(
+        supabase,
+        user.id,
+        purchase.id,
+        items,
+      );
+      console.log('verify-purchase granted access for existing purchase:', grantResults);
     }
 
     return NextResponse.json({

@@ -88,6 +88,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     const customerInfo = JSON.parse(session.metadata?.customer_info || '{}');
     const items = JSON.parse(session.metadata?.items || '[]');
 
+    console.log(`📦 Processing checkout for user ${userId} with ${items.length} item(s):`, items);
+
     const enrichedItems: any[] = [];
 
     for (const item of items) {
@@ -111,7 +113,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
         product = data;
       }
 
-      enrichedItems.push({
+      const enrichedItem = {
         product_slug: item.product_slug || null,
         name: item.name || null,
         quantity,
@@ -123,7 +125,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
         skool_course_id: product?.skool_course_id || null,
         ghl_tag: product?.ghl_tag || null,
         product_id: product?.id || null,
-      });
+      };
+
+      if (!enrichedItem.product_id) {
+        console.warn(`⚠️ Could not resolve product_id for item:`, { item, watchFields, product });
+      } else {
+        console.log(`✓ Resolved product_id ${enrichedItem.product_id} for item: ${enrichedItem.name}`);
+      }
+
+      enrichedItems.push(enrichedItem);
     }
 
     // Update or create purchase record
@@ -153,10 +163,14 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     }
 
     // Grant product access
+    const grantErrors: any[] = [];
     for (const enrichedItem of enrichedItems) {
-      if (!enrichedItem.product_id) continue;
+      if (!enrichedItem.product_id) {
+        console.warn(`No product_id for item: ${enrichedItem.name}`);
+        continue;
+      }
 
-      await supabase
+      const { error: grantError } = await supabase
         .from('user_products')
         .upsert({
           user_id: userId,
@@ -165,6 +179,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
           granted_at: new Date().toISOString(),
           is_active: true,
         });
+
+      if (grantError) {
+        console.error(`Failed to grant access to product ${enrichedItem.product_id}:`, grantError);
+        grantErrors.push({ product_id: enrichedItem.product_id, error: grantError });
+      } else {
+        console.log(`✓ Granted access to product ${enrichedItem.product_id} (${enrichedItem.name})`);
+      }
+    }
+
+    if (grantErrors.length > 0) {
+      console.error(`⚠️ WARNING: Purchase ${purchase.id} completed but ${grantErrors.length} product(s) failed to grant access:`, grantErrors);
+    } else {
+      console.log(`✓ All ${enrichedItems.length} product(s) access granted for purchase ${purchase.id}`);
     }
 
     // Update profile with customer info if provided

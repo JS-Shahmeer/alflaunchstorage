@@ -88,7 +88,7 @@ const CoursePageHeroSection = () => {
       <div className="absolute inset-0 bg-[#1f4d3a]/90" />
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:22px_22px]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 md:px-0 py-20 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 py-20 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         {/* LEFT SIDE */}
         <div ref={leftRef} className="text-white text-center lg:text-left">
           <div className="stagger-item inline-block bg-white/10 backdrop-blur-sm px-4 py-1 rounded-full text-xs sm:text-sm mb-6">
