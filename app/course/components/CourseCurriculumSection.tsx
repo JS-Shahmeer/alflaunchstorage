@@ -131,7 +131,7 @@ const modules: Module[] = [
     resources: 12,
     description:
       "Understand the industry landscape, regulations, and opportunities.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.youtube.com/embed/vaOVMgo4bS0",
   },
   {
     id: 2,
@@ -140,7 +140,7 @@ const modules: Module[] = [
     duration: 120,
     resources: 10,
     description: "Learn the best business structures for your care facility.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/b042a7334ed34c7d8882545f3a7820fa",
   },
   {
     id: 3,
@@ -149,7 +149,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 9,
     description: "Discover how to hire and onboard the right leadership.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/2e5442a02fb1480ebe20d702fba81b9e",
   },
   {
     id: 4,
@@ -158,7 +158,7 @@ const modules: Module[] = [
     duration: 90,
     resources: 7,
     description: "Explore funding options and financial planning strategies.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/4cf6bbf737a94c1abf7d7df860dc6d4b",
   },
   {
     id: 5,
@@ -167,7 +167,7 @@ const modules: Module[] = [
     duration: 130,
     resources: 8,
     description: "Navigate property selection and acquisition processes.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/96d4c3adf9d24df3b2034bbb444607ce",
   },
   {
     id: 6,
@@ -176,7 +176,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 14,
     description: "Complete guide to licensing requirements and applications.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/90f11bdacbab42359d447dc20dcfb0f5",
   },
   {
     id: 7,
@@ -185,7 +185,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 10,
     description: "Protect your business with proper insurance coverage.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.youtube.com/embed/O-acpAJLkME",
   },
   {
     id: 8,
@@ -194,7 +194,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 11,
     description: "Build and train your care team from the ground up.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/104fb7b33c1f42f8802dbddce374fded",
   },
   {
     id: 9,
@@ -203,7 +203,7 @@ const modules: Module[] = [
     duration: 70,
     resources: 9,
     description: "Master the admission and assessment process.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/ffbe0df972ad4f9e8e3c58e2a31cd545",
   },
   {
     id: 10,
@@ -212,7 +212,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 11,
     description: "Grow your client base through effective marketing.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.youtube.com/embed/BpbFNYr8R80",
   },
   {
     id: 11,
@@ -221,7 +221,7 @@ const modules: Module[] = [
     duration: 100,
     resources: 15,
     description: "Establish systems for smooth daily operations.",
-    videoPreviewUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    videoPreviewUrl: "https://www.loom.com/embed/5823755ca08144de9b187ee93b46f252",
   },
 ];
 
@@ -289,7 +289,7 @@ export default function CourseCurriculumSection() {
   const totalResources = modules.reduce((sum, m) => sum + m.resources, 0);
 
   return (
-    <section ref={sectionRef} className="relative w-full py-16 bg-white">
+    <section ref={sectionRef} id="lessons" className="relative w-full py-16 bg-white">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">

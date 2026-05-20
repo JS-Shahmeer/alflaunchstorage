@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, isSupabaseConfigured } from '@/utils/supabase-server';
 import { states } from '@/app/data/shopData';
+import { normalizeBundleFileLabel } from '@/lib/bundles';
 
 const DEFAULT_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'bundle-files';
 

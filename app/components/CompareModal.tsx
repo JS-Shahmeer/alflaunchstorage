@@ -140,11 +140,11 @@ export default function CompareModal({
               <h3 className="text-xl font-semibold text-slate-900 mb-3">
                 {sampleName}
               </h3>
-              <p className="text-sm text-slate-600 mb-6">
+              {/* <p className="text-sm text-slate-600 mb-6">
                 {sampleName} is a preview sample for {stateName}, perfect when
                 you want to verify the content before committing to the full
                 launch bundle.
-              </p>
+              </p> */}
               <div className="space-y-3 text-sm text-slate-700">
                 <div className="flex items-center gap-2">
                   <Check size={18} className="text-green-700" />

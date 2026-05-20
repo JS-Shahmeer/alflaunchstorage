@@ -114,18 +114,18 @@ const CoursePageHeroSection = () => {
               }}
               className="stagger-item flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg shadow-lg transition"
             >
-              Find Your Package
+              Enroll Now - $697
               <ArrowRight size={18} />
             </a>
 
             <a
-              href="/shop"
+              href="#lessons"
               ref={(el) => {
                 if (el) staggerRefs.current[1] = el;
               }}
               className="stagger-item flex items-center justify-center border border-white/40 text-white px-6 py-3 rounded-lg backdrop-blur-sm hover:bg-white/10 transition"
             >
-              Browse All Products
+              Preview Free Lessons
             </a>
           </div>
 

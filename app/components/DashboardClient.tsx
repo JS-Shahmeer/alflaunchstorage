@@ -19,6 +19,7 @@ import Link from "next/link";
 import Swal from "sweetalert2";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../../utils/supabase";
+import { normalizeBundleFileLabel } from "@/lib/bundles";
 
 interface DashboardClientProps {
   user: any;
@@ -421,10 +422,9 @@ export default function DashboardClient({
                               </div>
                               <div className="mt-5 grid gap-3">
                                 {files.map((file: any, index: number) => {
-                                  const fileLabel =
-                                    file.label ||
-                                    file.name ||
-                                    `Resource ${index + 1}`;
+                                  const fileLabel = normalizeBundleFileLabel(
+                                    file.label || file.name || `Resource ${index + 1}`,
+                                  ) || `Resource ${index + 1}`;
                                   const fileSize = file.size
                                     ? `${(file.size / 1024).toFixed(1)} KB`
                                     : null;

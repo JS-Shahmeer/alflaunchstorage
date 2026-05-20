@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { BundleProduct } from "@/lib/bundles";
-import { fetchShopProducts } from "@/lib/bundles";
+import { fetchShopProducts, normalizeBundleFileLabel } from "@/lib/bundles";
 import BundleCard from "./BundleCard";
 import DetailsModal from "./DetailsModal";
 import CompareModal from "./CompareModal";
@@ -65,21 +65,7 @@ export default function ShopMain() {
             return null;
           }
 
-          // Clean and normalize label to match productTypes
-          const label = rawLabel
-            .replace(/\s+Demofile$/i, '')  // Remove "Demofile" suffix
-            .replace(/\s+/g, ' ')          // Normalize multiple spaces
-            .trim()
-            // Normalize to title case
-            .toLowerCase()
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
-            // Fix specific cases to match productTypes
-            .replace(/Policy Procedure Manual/i, 'Policy & Procedure Manual')
-            .replace(/Pro Forma P L Template/i, 'Pro Forma P&L Template')
-            .replace(/Licensing Checklist/i, 'Licensing Checklist')
-            .replace(/Market Research Report/i, 'Market Research Report');
+          const label = normalizeBundleFileLabel(rawLabel);
 
           const state = metadata.state || product.state || "";
           const program = metadata.program || product.program || "";
