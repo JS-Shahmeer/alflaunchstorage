@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useCart } from "./cart-context";
+import useBuyNow from "./useBuyNow";
 import {
   Gift,
   BadgePercent,
@@ -53,17 +53,18 @@ export default function BundleModal({
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
-  const { addItem } = useCart();
+  const { buyNow, loading: buyLoading } = useBuyNow();
 
-  function handleAddToCart() {
-    addItem({
+  async function handleAddToCart() {
+    // Direct purchase flow: start Stripe checkout for this single bundle
+    onClose();
+    buyNow({
       id: productSlug || `bundle-${bundleTitle}`,
       name: bundleTitle,
       price,
       type: "Bundle",
       quantity: 1,
     });
-    onClose();
   }
 
   if (!open) return null;
@@ -232,8 +233,9 @@ export default function BundleModal({
           <button
             className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition"
             onClick={handleAddToCart}
+            disabled={buyLoading}
           >
-            Add to Cart - ${price.toFixed(2)}
+            {buyLoading ? "Processing…" : `Buy Now - $${price.toFixed(2)}`}
           </button>
           <p className="text-xs text-gray-500 text-center">
             Save 56% - This offer expires when the timer hits zero

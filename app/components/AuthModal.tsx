@@ -31,14 +31,49 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        toast.show('Successfully signed in!');
+
+        // Show success alert
+        await Swal.fire({
+          title: 'Sign In Successfully',
+          text: 'You can now add bundles to your cart and proceed with checkout.',
+          icon: 'success',
+          confirmButtonText: 'Continue',
+          confirmButtonColor: '#417a5a',
+          background: '#ffffff',
+          color: '#0f172a',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
+
+        // Close modal - useBuyNow hook will handle pending items automatically
         onClose();
-        const destination = pathname?.startsWith('/admin')
-          ? '/admin'
-          : pathname?.startsWith('/dashboard')
-          ? '/dashboard'
-          : pathname || '/dashboard';
-        router.replace(destination);
+        
+        // Check if there's a pending purchase item in localStorage
+        // If so, let useBuyNow hook handle the redirect to checkout
+        let destination = pathname || '/dashboard';
+        try {
+          const pendingItemStr = localStorage.getItem('pending-purchase-item');
+          if (pendingItemStr) {
+            // Pending item exists - don't redirect here, let useBuyNow handle it
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn('Failed to check pending item:', err);
+        }
+
+        // No pending item - redirect normally
+        // Check pathname for admin/dashboard redirects
+        if (pathname?.startsWith('/admin')) {
+          destination = '/admin';
+        } else if (pathname?.startsWith('/dashboard')) {
+          destination = '/dashboard';
+        }
+
+        // Small delay to ensure modal closes before navigation
+        setTimeout(() => {
+          router.replace(destination);
+        }, 100);
       } else {
         // First, ask the server if this email already exists to avoid ambiguous Supabase behaviour
         try {
@@ -97,7 +132,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           throw error;
         }
 
-        toast.show('Check your email for the confirmation link!');
+        // Show success alert for signup
+        await Swal.fire({
+          title: 'Sign Up Successfully',
+          text: 'Please check your email to confirm your account. Once confirmed, you can add bundles and proceed with checkout.',
+          icon: 'success',
+          confirmButtonText: 'Got It',
+          confirmButtonColor: '#417a5a',
+          background: '#ffffff',
+          color: '#0f172a',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
+
         onClose();
       }
     } catch (error: any) {
@@ -110,7 +157,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[999]">
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
         <button
           onClick={onClose}

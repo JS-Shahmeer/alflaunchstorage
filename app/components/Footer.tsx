@@ -94,6 +94,7 @@ export default function Footer() {
                 { label: "Bundles", href: "/bundles" },
                 { label: "Course", href: "/course" },
                 { label: "About Us", href: "/about" },
+                { label: "Contact Us", href: "/contact" },
               ].map((link) => (
                 <li key={link.label} className={linkClass}>
                   <a href={link.href}>{link.label}</a>

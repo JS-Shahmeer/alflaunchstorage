@@ -4,7 +4,7 @@ import CoursePageHeroSection from "./components/CoursePageHeroSection";
 import CourseCommunitySection from "./components/CourseCommunitySection";
 import CourseStatsSection from "./components/CourseStatsSection";
 import CourseCurriculumSection from "./components/CourseCurriculumSection";
-import CTA from "../components/CTA";
+import CoursePageCTA from "../components/CoursePageCTA";
 
 export default function CoursePage() {
   return (
@@ -14,7 +14,7 @@ export default function CoursePage() {
       <CourseStatsSection />
       <CourseCommunitySection />
       <CourseCurriculumSection />
-      <CTA />
+      <CoursePageCTA />
       <Footer />
     </>
   );

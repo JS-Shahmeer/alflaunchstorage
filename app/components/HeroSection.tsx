@@ -10,6 +10,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { gsap } from "gsap";
+import ImageBanner from "../../public/assets/images/homepage/hero-bg.jpg"
 
 const HeroSection = () => {
   const heroRef = useRef(null);
@@ -82,7 +83,7 @@ const HeroSection = () => {
       {/* Background */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+        style={{ backgroundImage: `url(${ImageBanner.src})` }}
       />
       <div className="absolute inset-0 bg-[#1f4d3a]/90" />
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:22px_22px]" />

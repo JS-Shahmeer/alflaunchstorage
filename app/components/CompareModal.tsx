@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useCart } from "./cart-context";
+import useBuyNow from "./useBuyNow";
 import {
   Gift,
   Star,
@@ -27,8 +27,8 @@ export default function CompareModal({
   currentProduct,
 }: CompareModalProps) {
   const [secondsLeft, setSecondsLeft] = useState(590);
-  const { addItem } = useCart();
   const toast = useToast();
+  const { buyNow, loading: buyLoading } = useBuyNow();
 
   useEffect(() => {
     if (!open) return;
@@ -54,8 +54,9 @@ export default function CompareModal({
   const oldPrice = 2285;
   const saveAmount = oldPrice - bundlePrice;
 
-  function handleAddCompleteBundle() {
-    addItem({
+  async function handleAddCompleteBundle() {
+    onClose();
+    buyNow({
       id: currentProduct.product_slug || `complete-bundle-${stateName.toLowerCase().replace(/\s+/g, "-")}`,
       name: bundleTitle,
       price: bundlePrice,
@@ -63,12 +64,11 @@ export default function CompareModal({
       state: stateName,
       quantity: 1,
     });
-    toast.show("Complete Bundle added to cart!");
-    onClose();
   }
 
-  function handleAddSampleOnly() {
-    addItem({
+  async function handleAddSampleOnly() {
+    onClose();
+    buyNow({
       id: `${currentProduct.id}-sample`,
       name: sampleName,
       price: samplePrice,
@@ -79,8 +79,6 @@ export default function CompareModal({
       state: stateName,
       quantity: 1,
     });
-    toast.show(`${sampleName} added to cart!`);
-    onClose();
   }
 
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import GetStartedSidebar from "./GetStartedSidebar";
 import { useCart } from "./cart-context";
+import useBuyNow from "./useBuyNow";
 import GetStartedStickyBar from "./GetStartedStickyBar";
 
 export default function GetStartedComponentThree({
@@ -43,6 +44,7 @@ export default function GetStartedComponentThree({
   const [individualBundles, setIndividualBundles] = React.useState<any[]>([]);
   const [loadingBundles, setLoadingBundles] = React.useState(true);
   const { items: cartItems, addItem, removeItem } = useCart();
+  const { buyNow, loading: buyLoading } = useBuyNow();
   const toast = useToast();
   const router = useRouter();
 
@@ -149,25 +151,21 @@ export default function GetStartedComponentThree({
               <div className="flex flex-col items-center gap-2 min-w-0 w-full lg:min-w-55 lg:w-auto">
                 <p className="text-[#417a5a] text-xs md:text-sm text-center">Everything you need in one complete package</p>
                 <button
-                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-sm w-full text-sm md:text-base ${selectedBundle ? 'ring-2 ring-[#417a5a]' : ''}`}
-                  onClick={() => {
-                    if (selectedBundle) {
-                      removeItem('Complete Licensing Bundle');
-                      setSelectedBundle(false);
-                    } else {
-                      addItem({
-                        id: 'Complete Licensing Bundle',
-                        name: 'Complete Licensing Bundle',
-                        price: 997,
-                        type: selectedType,
-                        state: stateNames[selectedState],
-                      });
-                      setSelectedBundle(true);
-                      toast.show('Complete Licensing Bundle added to cart!');
-                    }
+                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-sm w-full text-sm md:text-base`}
+                  onClick={async () => {
+                    // Direct purchase flow for the complete bundle
+                    await buyNow({
+                      id: 'Complete Licensing Bundle',
+                      name: 'Complete Licensing Bundle',
+                      price: 997,
+                      type: selectedType,
+                      state: stateNames[selectedState],
+                      quantity: 1,
+                    });
                   }}
+                  disabled={buyLoading}
                 >
-                  {selectedBundle ? 'Selected' : 'Select Bundle'}
+                  {buyLoading ? 'Processing…' : 'Buy Complete Bundle'}
                 </button>
                 <button
                   className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-2 rounded-xl shadow-sm w-full text-sm md:text-base"
@@ -194,21 +192,16 @@ export default function GetStartedComponentThree({
                     const itemDesc = individualItemDescriptions[resource.label] ?? resource.label;
                     const isSelected = selectedProducts.includes(itemId);
 
-                    const handleSelect = () => {
-                      if (isSelected) {
-                        removeItem(itemId);
-                        setSelectedProducts((prev) => prev.filter((k) => k !== itemId));
-                      } else {
-                        addItem({
-                          id: itemId,
-                          name: resource.label,
-                          price: itemPrice,
-                          type: selectedType,
-                          state: stateNames[selectedState],
-                        });
-                        setSelectedProducts((prev) => [...prev, itemId]);
-                        toast.show(`${resource.label} added to cart!`);
-                      }
+                    const handleSelect = async () => {
+                      // Direct purchase for this individual resource
+                      await buyNow({
+                        id: itemId,
+                        name: resource.label,
+                        price: itemPrice,
+                        type: selectedType,
+                        state: stateNames[selectedState],
+                        quantity: 1,
+                      });
                     };
 
                     return (

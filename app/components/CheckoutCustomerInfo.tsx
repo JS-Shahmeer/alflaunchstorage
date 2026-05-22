@@ -89,7 +89,7 @@ export default function CheckoutCustomerInfo({ form, handleChange, handleContinu
             onClick={() => window.history.back()}
           >
             <ChevronLeft className="inline mr-1" size={16} />
-            Back to Cart
+            Back
           </button>
           <button
             type="button"

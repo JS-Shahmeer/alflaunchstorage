@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Clock, CheckCircle, Gift, Settings, Package, Star, BookOpen, ShoppingCart, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCart } from "../../components/cart-context";
+import useBuyNow from "../../components/useBuyNow";
 
 const stateNames: { [abbr: string]: string } = {
   AL: "Alabama",
@@ -73,6 +74,7 @@ const programTypes = [
 export default function BundlesPageMainSection() {
   const router = useRouter();
   const { addItem } = useCart();
+  const { buyNow, loading: buyLoading } = useBuyNow();
   const [selectedState, setSelectedState] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [timeLeft, setTimeLeft] = useState({
@@ -112,9 +114,9 @@ export default function BundlesPageMainSection() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedState && selectedType) {
-      addItem({
+      await buyNow({
         id: `bundle-${selectedState}-${selectedType}`,
         name: `Complete State Licensing Bundle - ${selectedType}`,
         price: 997,
@@ -122,7 +124,6 @@ export default function BundlesPageMainSection() {
         state: selectedState,
         quantity: 1,
       });
-      router.push("/cart");
     }
   };
 

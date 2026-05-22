@@ -20,9 +20,9 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/states", label: "By State" },
+  { href: "https://blogs.optimal-itsolutions.net/alflaunch", label: "Guides" },
   { href: "/course", label: "Course" },
   { href: "/about", label: "About" },
-  // { href: "/guides", label: "Guides" },
 ];
 
 const Header = () => {
@@ -109,10 +109,12 @@ const Header = () => {
               const isActive =
                 pathname === link.href ||
                 (link.href !== "/" && pathname.startsWith(link.href));
+              const isExternal = link.href.startsWith("http");
               return (
                 <a
                   key={idx}
                   href={link.href}
+                  {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
                   className={`${linkClass} ${
                     isActive ? "text-green-700 font-semibold after:w-full" : ""
                   }`}
@@ -249,11 +251,13 @@ const Header = () => {
                 const isActive =
                   pathname === link.href ||
                   (link.href !== "/" && pathname.startsWith(link.href));
+                const isExternal = link.href.startsWith("http");
                 return (
                   <a
                     key={idx}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
+                    {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
                     className={`${linkClass} text-lg ${
                       isActive
                         ? "text-green-700 font-semibold after:w-full"
