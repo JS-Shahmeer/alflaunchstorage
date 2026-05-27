@@ -72,48 +72,48 @@ export default function GetStartedSteps() {
   const steps = ["Select State", "Program Type", "Choose Products", "Checkout"];
   const currentStep = stepParam === 'checkout' ? 4 : selectedState && selectedType ? 3 : selectedState ? 2 : 1;
 
-  // Program types data
+  // Program types data - matches shopData.ts exactly
   const programTypes = useMemo(
     () => [
       {
-        key: "Group Home For Children",
-        desc: "Licensed group home for children services",
-      },
-      {
-        key: "Non-Medical Home Care Agency",
-        desc: "Licensed non-medical home care agency services",
-      },
-      {
-        key: "Adult Day Care Program",
-        desc: "Licensed adult day care program services",
-      },
-      {
-        key: "Adult Developmental Home",
-        desc: "Licensed adult developmental home services",
-      },
-      {
-        key: "Assisted Living Facility",
+        key: "Assisted Living Facilities",
         desc: "Licensed assisted living facility services",
       },
       {
-        key: "Child Care Facility",
-        desc: "Licensed child care facility services",
+        key: "Nursing Facilities (SNF)",
+        desc: "Licensed nursing care facility services",
       },
       {
-        key: "Group Home For Developmental Disabilities",
-        desc: "Licensed group home for developmental disabilities services",
-      },
-      {
-        key: "Nursing Care Institution",
-        desc: "Licensed nursing care institution services",
-      },
-      {
-        key: "Home Health Agency",
+        key: "Home Health Agencies",
         desc: "Licensed home health agency services",
       },
       {
-        key: "Hospice Program",
+        key: "Adult Day Care Programs",
+        desc: "Licensed adult day care program services",
+      },
+      {
+        key: "Hospice Programs",
         desc: "Licensed hospice program services",
+      },
+      {
+        key: "Child Care Facilities",
+        desc: "Licensed child care facility services",
+      },
+      {
+        key: "Group Homes for Children",
+        desc: "Licensed group home for children services",
+      },
+      {
+        key: "Personal Home Care",
+        desc: "Licensed personal home care services",
+      },
+      {
+        key: "Residential Care (DD)",
+        desc: "Licensed residential care for developmental disabilities services",
+      },
+      {
+        key: "Residential Treatment (Children)",
+        desc: "Licensed residential treatment for children services",
       },
     ],
     [],

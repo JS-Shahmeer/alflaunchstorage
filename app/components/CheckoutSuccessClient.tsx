@@ -157,12 +157,18 @@ export default function CheckoutSuccessClient() {
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 flex flex-col sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link
               href="/shop"
               className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
             >
               Continue Shopping
+            </Link>
+            <Link
+              href="/dashboard"
+              className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+            >
+              View Dashboard
             </Link>
           </div>
 

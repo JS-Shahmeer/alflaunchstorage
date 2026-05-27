@@ -362,7 +362,7 @@ export default function ShopMain() {
           {/* Top Bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-700 text-sm">
-              {loadingProducts ? "Searching for Products..." : `Showing ${filteredProducts.length} of ${displayProducts.length} products`}
+              {loadingProducts ? "Loading Products..." : `Showing ${filteredProducts.length} of ${displayProducts.length} products`}
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <input
@@ -441,7 +441,7 @@ export default function ShopMain() {
           {/* Product Cards */}
           {loadingProducts ? (
             <p className="text-center text-green-700 text-lg py-10">
-              Searching for Products...
+              Loading Products...
             </p>
           ) : filteredProducts.length === 0 ? (
             <p className="text-center text-green-700 text-lg py-10">

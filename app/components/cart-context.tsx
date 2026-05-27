@@ -11,6 +11,10 @@ export type CartItem = {
   type?: string;
   state?: string;
   quantity?: number;
+  product_id?: string;      // Link to database product
+  product_slug?: string;    // For fetching product details
+  metadata?: any;           // Full product metadata (program, features, files, etc.)
+  bundle_id?: string;       // Bundle identifier for organization
 };
 
 type CartContextType = {

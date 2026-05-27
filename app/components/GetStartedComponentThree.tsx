@@ -43,6 +43,7 @@ export default function GetStartedComponentThree({
   const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
   const [individualBundles, setIndividualBundles] = React.useState<any[]>([]);
   const [loadingBundles, setLoadingBundles] = React.useState(true);
+  const [completeBundle, setCompleteBundle] = React.useState<any | null>(null);
   const { items: cartItems, addItem, removeItem } = useCart();
   const { buyNow, loading: buyLoading } = useBuyNow();
   const toast = useToast();
@@ -64,6 +65,12 @@ export default function GetStartedComponentThree({
 
   const stateResources = React.useMemo(() => {
     return individualBundles.flatMap((bundle) => {
+      // Skip complete bundles - only show files from individual bundles for this program type
+      if (bundle.metadata?.productLabel === 'Complete Bundle') return [];
+      
+      // Filter to only show files from the bundle matching the selected program type
+      if (bundle.metadata?.program !== selectedType) return [];
+      
       const files = Array.isArray(bundle.metadata?.files) ? bundle.metadata.files : [];
       return files.map((file: any) => ({
         ...file,
@@ -73,35 +80,53 @@ export default function GetStartedComponentThree({
         bundleState: bundle.metadata?.state || bundle.state,
       }));
     });
-  }, [individualBundles]);
+  }, [individualBundles, selectedType]);
 
-  // Fetch individual bundles for the selected state
+  // Fetch all bundles (complete and individual) for the selected state
   React.useEffect(() => {
-    const fetchIndividualBundles = async () => {
+    const fetchBundles = async () => {
       setLoadingBundles(true);
       try {
-        // Convert state code to state name for fetching
         const stateName = stateNames[selectedState];
-        const response = await fetch(`/api/products?includeIndividual=true&state=${encodeURIComponent(stateName)}`);
+        // Fetch ALL products for this state (no filters)
+        const response = await fetch(`/api/products?state=${encodeURIComponent(stateName)}`);
         const data = await response.json();
+        
         if (response.ok) {
-          setIndividualBundles(data.products || []);
+          const allProducts = data.products || [];
+          
+          // Separate complete bundles from individual bundles
+          const completeBundles = allProducts.filter(
+            (p: any) => p.metadata?.productLabel === 'Complete Bundle'
+          );
+          
+          // Set all bundles (both types) for display
+          setIndividualBundles(allProducts);
+          
+          // Find the complete bundle matching this state AND program type
+          const matchingBundle = completeBundles.find(
+            (b: any) => b.metadata?.program === selectedType
+          );
+          
+          setCompleteBundle(matchingBundle || null);
         } else {
-          console.error('Failed to fetch individual bundles:', data.error);
+          console.error('Failed to fetch bundles:', data.error);
           setIndividualBundles([]);
+          setCompleteBundle(null);
         }
       } catch (error) {
-        console.error('Error fetching individual bundles:', error);
+        console.error('Error fetching bundles:', error);
         setIndividualBundles([]);
+        setCompleteBundle(null);
       } finally {
         setLoadingBundles(false);
       }
     };
 
     if (selectedState) {
-      fetchIndividualBundles();
+      fetchBundles();
     }
-  }, [selectedState]);
+  }, [selectedState, selectedType, stateNames]);
   return (
     <>
       <Stepper currentStep={currentStep} steps={steps} />
@@ -150,7 +175,7 @@ export default function GetStartedComponentThree({
               </div>
               <div className="flex flex-col items-center gap-2 min-w-0 w-full lg:min-w-55 lg:w-auto">
                 <p className="text-[#417a5a] text-xs md:text-sm text-center">Everything you need in one complete package</p>
-                <button
+                {/* <button
                   className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-sm w-full text-sm md:text-base`}
                   onClick={async () => {
                     // Direct purchase flow for the complete bundle
@@ -166,7 +191,7 @@ export default function GetStartedComponentThree({
                   disabled={buyLoading}
                 >
                   {buyLoading ? 'Processing…' : 'Buy Complete Bundle'}
-                </button>
+                </button> */}
                 <button
                   className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-2 rounded-xl shadow-sm w-full text-sm md:text-base"
                   onClick={() => setBundleModalOpen(true)}
@@ -194,6 +219,9 @@ export default function GetStartedComponentThree({
 
                     const handleSelect = async () => {
                       // Direct purchase for this individual resource
+                      // Find the full bundle to get complete metadata
+                      const fullBundle = individualBundles.find(b => b.id === resource.bundleId);
+                      
                       await buyNow({
                         id: itemId,
                         name: resource.label,
@@ -201,6 +229,11 @@ export default function GetStartedComponentThree({
                         type: selectedType,
                         state: stateNames[selectedState],
                         quantity: 1,
+                        // Add database connection fields
+                        product_id: resource.bundleId,
+                        product_slug: fullBundle?.slug || fullBundle?.id,
+                        metadata: fullBundle?.metadata || {},
+                        bundle_id: resource.bundleId,
                       });
                     };
 
@@ -241,13 +274,22 @@ export default function GetStartedComponentThree({
       <BundleModal
         open={bundleModalOpen}
         onClose={() => setBundleModalOpen(false)}
-        bundleTitle={selectedType}
-        price={997}
-        oldPrice={2285}
-        saveAmount={1288}
-        items={bundleProducts.map((p) => ({ label: p.key, price: 297 }))}
-        bonuses={bonusProducts.map((p) => p.key)}
-        coursePrice={297}
+        bundleTitle={completeBundle?.name || `Complete Licensing Bundle - ${selectedType}`}
+        productSlug={completeBundle?.product_slug}
+        price={completeBundle?.price ?? 997}
+        oldPrice={completeBundle?.metadata?.oldPrice ?? 2285}
+        saveAmount={(completeBundle?.metadata?.oldPrice ?? 2285) - (completeBundle?.price ?? 997)}
+        items={
+          completeBundle?.features && completeBundle.features.length > 0
+            ? completeBundle.features.map((label: string) => ({ label, price: 0 }))
+            : bundleProducts.map((p) => ({ label: p.key, price: 297 }))
+        }
+        bonuses={
+          completeBundle?.metadata?.bonuses && completeBundle.metadata.bonuses.length > 0
+            ? completeBundle.metadata.bonuses
+            : bonusProducts.map((p) => p.key)
+        }
+        coursePrice={completeBundle?.metadata?.coursePrice ?? 297}
       />
       <GetStartedStickyBar
         onBack={() => router.push(`/get-started?state=${selectedState}`)}
