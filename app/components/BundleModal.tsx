@@ -10,37 +10,77 @@ import {
   X,
   Check,
   Box,
+  Loader,
 } from "lucide-react";
 import { BsLightning } from "react-icons/bs";
 
 interface BundleModalProps {
   open: boolean;
   onClose: () => void;
-  bundleTitle: string;
+  state: string;
+  stateAbbr?: string;
+  program: string;
+  bundleTitle?: string;
   productSlug?: string;
-  price: number;
-  oldPrice: number;
-  saveAmount: number;
-  items: { label: string; price: number }[];
-  bonuses: string[];
-  coursePrice: number;
+  price?: number;
+  oldPrice?: number;
+  saveAmount?: number;
+  items?: { label: string; price: number }[];
+  bonuses?: string[];
+  coursePrice?: number;
 }
 
 export default function BundleModal({
   open,
   onClose,
-  bundleTitle,
+  state,
+  stateAbbr,
+  program,
+  bundleTitle: propBundleTitle,
   productSlug,
-  price,
-  oldPrice,
-  saveAmount,
-  items,
-  bonuses,
-  coursePrice,
+  price: propPrice,
+  oldPrice: propOldPrice,
+  saveAmount: propSaveAmount,
+  items: propItems,
+  bonuses: propBonuses,
+  coursePrice: propCoursePrice,
 }: BundleModalProps) {
+  const [completeBundle, setCompleteBundle] = useState<any | null>(null);
+  const [loadingBundle, setLoadingBundle] = useState(false);
   // Countdown timer state (9:50)
   const [secondsLeft, setSecondsLeft] = useState(590); // 9*60 + 50 = 590 seconds
 
+  // Fetch complete bundle data from database
+  useEffect(() => {
+    if (!open || !state || !program) return;
+
+    const fetchCompleteBundle = async () => {
+      setLoadingBundle(true);
+      try {
+        const response = await fetch(`/api/products?includeIndividual=false&state=${encodeURIComponent(state)}`);
+        const data = await response.json();
+        
+        if (response.ok && data.products) {
+          // Find the complete bundle that matches the current program
+          const bundle = data.products.find(
+            (p: any) =>
+              p.metadata?.productLabel === 'Complete Bundle' &&
+              p.metadata?.program === program
+          );
+          setCompleteBundle(bundle || null);
+        }
+      } catch (error) {
+        console.error('Error fetching complete bundle:', error);
+        setCompleteBundle(null);
+      } finally {
+        setLoadingBundle(false);
+      }
+    };
+
+    fetchCompleteBundle();
+  }, [open, state, program]);
+
+  // Countdown timer
   useEffect(() => {
     if (!open) return;
     setSecondsLeft(590);
@@ -49,6 +89,20 @@ export default function BundleModal({
     }, 1000);
     return () => clearInterval(interval);
   }, [open]);
+
+  // Use fetched data or fallback to props (only after loading completes)
+  const bundleTitle = propBundleTitle || completeBundle?.name || `Complete Licensing Bundle - ${program}`;
+  const price = completeBundle?.price ?? (loadingBundle ? undefined : propPrice);
+  const oldPrice = completeBundle?.metadata?.oldPrice ?? (loadingBundle ? undefined : propOldPrice);
+  const saveAmount = oldPrice && price ? oldPrice - price : 0;
+  const items = propItems || [
+    { label: 'Market Research Report', price: 0 },
+    { label: 'Policy & Procedure Manual', price: 0 },
+    { label: 'Pro Forma P&L Template', price: 0 },
+    { label: 'Licensing Checklist', price: 0 },
+  ];
+  const bonuses = propBonuses || ['Private Community Access', 'Free Updates When Laws Change'];
+  const coursePrice = completeBundle?.metadata?.coursePrice ?? (loadingBundle ? undefined : propCoursePrice);
 
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
@@ -59,10 +113,11 @@ export default function BundleModal({
     // Direct purchase flow: start Stripe checkout for this single bundle
     onClose();
     buyNow({
-      id: productSlug || `bundle-${bundleTitle}`,
+      id: completeBundle?.product_slug || productSlug || `bundle-${bundleTitle}`,
       name: bundleTitle,
       price,
       type: "Bundle",
+      state: stateAbbr || state,
       quantity: 1,
     });
   }
@@ -130,21 +185,48 @@ export default function BundleModal({
               style={{ boxShadow: "0 2px 16px 0 #f6e7b2" }}
             >
               <div className="flex flex-col items-center gap-2 mb-2">
-                <span className="flex items-center gap-2 pt-4 text-yellow-900 text-2xl font-bold">
+                <span className="flex items-center gap-3 pt-4 text-yellow-900 text-xl font-bold">
                   <Box size={28} className="text-yellow-900" />
-                  Complete State Licensing Bundle
+                  {loadingBundle ? (
+                    <div className="flex items-center gap-2">
+                      <Loader size={24} className="text-green-700 animate-spin" />
+                      <span className="text-base text-gray-600">Loading...</span>
+                    </div>
+                  ) : (
+                    bundleTitle || 'Complete State Licensing Bundle'
+                  )}
                 </span>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-lg line-through">
-                    ${oldPrice.toFixed(2)}
-                  </span>
-                  <span className="text-4xl font-bold text-green-800">
-                    ${price.toFixed(2)}
-                  </span>
-                </div>
-                <span className="bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm mt-1">
-                  SAVE ${saveAmount.toFixed(2)} (56% OFF)
-                </span>
+                {loadingBundle ? (
+                  <div className="flex flex-col items-center gap-3 mt-4 w-full">
+                    <div className="flex items-center gap-2">
+                      <div className="h-10 bg-gray-200 rounded animate-pulse" style={{width: '200px'}}></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Loader size={28} className="text-green-700 animate-spin" />
+                      <span className="text-sm text-gray-600">Fetching pricing...</span>
+                    </div>
+                  </div>
+                ) : price !== undefined ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      {oldPrice !== undefined && (
+                        <span className="text-gray-400 text-lg line-through">
+                          ${oldPrice.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="text-4xl font-bold text-green-800">
+                        {price ? `$${price.toFixed(2)}` : 'N/A'}
+                      </span>
+                    </div>
+                    {saveAmount > 0 && oldPrice !== undefined ? (
+                      <span className="bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm mt-2">
+                        SAVE ${saveAmount.toFixed(2)} (56% OFF)
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-gray-500 text-sm mt-2">Pricing unavailable</span>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {/* What's Included */}
@@ -203,27 +285,29 @@ export default function BundleModal({
                     ))}
                   </ul>
                   {/* Course at half price box */}
-                  <div className="mt-4 bg-yellow-200 rounded-lg px-3 py-2 text-yellow-900 text-sm font-semibold flex flex-col items-center gap-2">
-                    <div>
-                      <BsLightning
-                        size={16}
-                        className="text-yellow-900 inline"
-                      />
-                      Course at{" "}
-                      <span className="font-bold text-yellow-800">
-                        HALF PRICE
+                  {coursePrice !== undefined && (
+                    <div className="mt-4 bg-yellow-200 rounded-lg px-3 py-2 text-yellow-900 text-sm font-semibold flex flex-col items-center gap-2">
+                      <div>
+                        <BsLightning
+                          size={16}
+                          className="text-yellow-900 inline"
+                        />
+                        Course at{" "}
+                        <span className="font-bold text-yellow-800">
+                          HALF PRICE
+                        </span>
+                      </div>
+                      <span className="">
+                        $697 →{" "}
+                        <span className="text-green-700 font-bold">
+                          ${coursePrice.toFixed(2)}
+                        </span>{" "}
+                        <span className="text-xs text-gray-500">
+                          (Save $400!)
+                        </span>
                       </span>
                     </div>
-                    <span className="">
-                      $697 →{" "}
-                      <span className="text-green-700 font-bold">
-                        ${coursePrice.toFixed(2)}
-                      </span>{" "}
-                      <span className="text-xs text-gray-500">
-                        (Save $400!)
-                      </span>
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -231,11 +315,18 @@ export default function BundleModal({
 
           {/* Add to Cart Button */}
           <button
-            className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition"
+            className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 disabled:bg-yellow-200 disabled:cursor-not-allowed text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition flex items-center justify-center gap-2"
             onClick={handleAddToCart}
-            disabled={buyLoading}
+            disabled={buyLoading || loadingBundle || !price}
           >
-            {buyLoading ? "Processing…" : `Buy Now - $${price.toFixed(2)}`}
+            {buyLoading || loadingBundle ? (
+              <>
+                <Loader size={20} className="text-green-700 animate-spin" />
+                <span>{buyLoading ? 'Processing…' : 'Loading pricing...'}</span>
+              </>
+            ) : (
+              `Buy Now - ${price ? `$${price.toFixed(2)}` : 'N/A'}`
+            )}
           </button>
           <p className="text-xs text-gray-500 text-center">
             Save 56% - This offer expires when the timer hits zero

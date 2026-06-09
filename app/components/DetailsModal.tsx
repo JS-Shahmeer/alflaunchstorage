@@ -191,13 +191,17 @@ export default function DetailsModal({
         {/* Price & Add to Cart */}
         <div className="flex flex-col items-center mb-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-3xl font-bold text-black">${price}</span>
-            <span className="text-gray-400 line-through text-lg">
-              ${oldPrice}
-            </span>
-            <span className="bg-yellow-200 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
-              Save $119
-            </span>
+            <span className="text-3xl font-bold text-black">${price || 'Loading...'}</span>
+            {oldPrice && (
+              <span className="text-gray-400 line-through text-lg">
+                ${oldPrice}
+              </span>
+            )}
+            {oldPrice && price && oldPrice > price && (
+              <span className="bg-yellow-200 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
+                Save ${(oldPrice - price).toFixed(0)}
+              </span>
+            )}
           </div>
           <button
             className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition mb-2"

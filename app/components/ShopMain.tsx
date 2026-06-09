@@ -475,11 +475,14 @@ export default function ShopMain() {
           <BundleModal
             open={modalOpen}
             onClose={() => setModalOpen(false)}
-            bundleTitle={modalProduct.name}
+            state={modalProduct.metadata?.state || ""}
+            stateAbbr={states.find(s => s.name === (modalProduct.metadata?.state || ""))?.code || ""}
+            program={modalProduct.metadata?.program || ""}
+            bundleTitle={modalProduct.name || `Complete Licensing Bundle - ${modalProduct.metadata?.program || ""}`}
             productSlug={modalProduct.product_slug}
             price={modalProduct.price}
-            oldPrice={modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8}
-            saveAmount={(modalProduct.metadata?.oldPrice ?? modalProduct.price * 1.8) - modalProduct.price}
+            oldPrice={modalProduct.metadata?.oldPrice}
+            saveAmount={modalProduct.metadata?.oldPrice && modalProduct.price ? modalProduct.metadata.oldPrice - modalProduct.price : 0}
             items={
               modalProduct.features && modalProduct.features.length > 0
                 ? modalProduct.features.map((label) => ({ label, price: 0 }))
@@ -495,7 +498,7 @@ export default function ShopMain() {
                 ? modalProduct.metadata.bonuses
                 : ["Private Community Access", "Free Updates When Laws Change"]
             }
-            coursePrice={modalProduct.metadata?.coursePrice ?? 297}
+            coursePrice={modalProduct.metadata?.coursePrice}
           />
         )}
         {detailsModalOpen && detailsProduct && (
@@ -510,9 +513,10 @@ export default function ShopMain() {
             state={detailsProduct.metadata?.state || detailsProduct.state || ""}
             agencyType={detailsProduct.metadata?.program || detailsProduct.program || ""}
             price={detailsProduct.price}
-            oldPrice={detailsProduct.metadata?.oldPrice ?? detailsProduct.price * 1.5}
+            oldPrice={detailsProduct.metadata?.oldPrice || detailsProduct.price}
             features={detailsProduct.features || []}
             productKey={detailsProduct.metadata?.productLabel || detailsProduct.type || detailsProduct.product_label}
+            productDesc={detailsProduct.metadata?.productLabel || detailsProduct.type || detailsProduct.product_label}
             productTitle={detailsProduct.metadata?.productLabel || detailsProduct.type || detailsProduct.product_label || ""}
           />
         )}
@@ -521,6 +525,9 @@ export default function ShopMain() {
             open={compareModalOpen}
             onClose={() => setCompareModalOpen(false)}
             currentProduct={compareProduct}
+            state={compareProduct.metadata?.state || ""}
+            stateAbbr={states.find((s) => s.name === compareProduct.metadata?.state)?.code || ""}
+            bundleTitle={`Complete Licensing Bundle - ${compareProduct.metadata?.program || ""}`}
           />
         )}
       </div>

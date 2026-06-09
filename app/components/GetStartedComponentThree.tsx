@@ -1,8 +1,9 @@
 import Stepper from "./Stepper";
 import { useToast } from "./SimpleToast";
 import { programTypeIcons } from "./lucide-icons";
-import { FileText, Award, Users } from "lucide-react";
+import { FileText, Award, Users, Loader } from "lucide-react";
 import BundleModal from "./BundleModal";
+import CompareModal from "./CompareModal";
 import DetailsModal from "./DetailsModal";
 import React from "react";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,7 @@ export default function GetStartedComponentThree({
 }) {
   const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
   const [detailsProduct, setDetailsProduct] = React.useState<any | null>(null);
+  const [compareModalOpen, setCompareModalOpen] = React.useState(false);
   const [selectedBundle, setSelectedBundle] = React.useState(false);
   const [selectedProducts, setSelectedProducts] = React.useState<string[]>([]);
   const [individualBundles, setIndividualBundles] = React.useState<any[]>([]);
@@ -65,8 +67,8 @@ export default function GetStartedComponentThree({
 
   const stateResources = React.useMemo(() => {
     return individualBundles.flatMap((bundle) => {
-      // Skip complete bundles - only show files from individual bundles for this program type
-      if (bundle.metadata?.productLabel === 'Complete Bundle') return [];
+      // Only show files from complete bundles for this program type
+      if (bundle.metadata?.productLabel !== 'Complete Bundle') return [];
       
       // Filter to only show files from the bundle matching the selected program type
       if (bundle.metadata?.program !== selectedType) return [];
@@ -78,9 +80,12 @@ export default function GetStartedComponentThree({
         bundleName: bundle.name,
         bundleDescription: bundle.description,
         bundleState: bundle.metadata?.state || bundle.state,
+        bundleStateAbbr: selectedState,
+        bundleStateName: stateNames[selectedState],
+        bundleProgram: bundle.metadata?.program,
       }));
     });
-  }, [individualBundles, selectedType]);
+  }, [individualBundles, selectedType, stateNames]);
 
   // Fetch all bundles (complete and individual) for the selected state
   React.useEffect(() => {
@@ -88,8 +93,8 @@ export default function GetStartedComponentThree({
       setLoadingBundles(true);
       try {
         const stateName = stateNames[selectedState];
-        // Fetch ALL products for this state (no filters)
-        const response = await fetch(`/api/products?state=${encodeURIComponent(stateName)}`);
+        // Fetch ALL products for this state (including individual bundles)
+        const response = await fetch(`/api/products?includeIndividual=true&state=${encodeURIComponent(stateName)}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -158,8 +163,18 @@ export default function GetStartedComponentThree({
             {/* Bundle Card */}
             <div className="border border-[#eaffea] rounded-xl bg-[#f9f9f4] p-4 md:p-6 flex flex-col lg:flex-row gap-4 md:gap-6 items-center mb-6 md:mb-8 shadow-sm">
               <div className="flex-1 w-full">
-                <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-2 py-1 md:px-3 md:py-1 rounded-full">★ Most Popular - Save $1288</span>
-                <h3 className="text-lg md:text-xl font-bold text-[#417a5a] mt-3 mb-2">Complete Licensing Bundle</h3>
+                {/* <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-2 py-1 md:px-3 md:py-1 rounded-full">★ Most Popular - Save ${completeBundle?.metadata?.oldPrice && completeBundle?.price ? (completeBundle.metadata.oldPrice - completeBundle.price).toFixed(0) : 'Loading...'}</span> */}
+                <span className="bg-[#e6d7b0] text-[#7a5a41] text-xs font-bold px-2 py-1 md:px-3 md:py-1 rounded-full">★ Most Popular</span>
+                <h3 className="text-lg md:text-xl font-bold text-[#417a5a] mt-3 mb-2 flex items-center gap-2">
+                  {loadingBundles ? (
+                    <>
+                      <Loader size={24} className="text-green-700 animate-spin" />
+                      <span className="text-gray-600 text-base">Loading bundle...</span>
+                    </>
+                  ) : (
+                    completeBundle?.name || `Complete Licensing Bundle`
+                  )}
+                </h3>
                 <p className="text-[#417a5a] mb-3 md:mb-4 text-sm md:text-base">Everything you need to launch your care business with confidence</p>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 md:gap-x-8 gap-y-1 mb-3 md:mb-4">
                   {bundleProducts.map((p) => (
@@ -175,25 +190,8 @@ export default function GetStartedComponentThree({
               </div>
               <div className="flex flex-col items-center gap-2 min-w-0 w-full lg:min-w-55 lg:w-auto">
                 <p className="text-[#417a5a] text-xs md:text-sm text-center">Everything you need in one complete package</p>
-                {/* <button
-                  className={`bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-3 rounded-xl shadow-sm w-full text-sm md:text-base`}
-                  onClick={async () => {
-                    // Direct purchase flow for the complete bundle
-                    await buyNow({
-                      id: 'Complete Licensing Bundle',
-                      name: 'Complete Licensing Bundle',
-                      price: 997,
-                      type: selectedType,
-                      state: stateNames[selectedState],
-                      quantity: 1,
-                    });
-                  }}
-                  disabled={buyLoading}
-                >
-                  {buyLoading ? 'Processing…' : 'Buy Complete Bundle'}
-                </button> */}
                 <button
-                  className="mt-2 bg-white border border-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-2 rounded-xl shadow-sm w-full text-sm md:text-base"
+                  className="mt-2 bg-white border border-[#e6d7b0] cursor-pointer transition-colors duration-300 hover:bg-[#e6d7b0] text-[#7a5a41] font-semibold px-4 py-2 md:px-6 md:py-2 rounded-xl shadow-sm w-full text-sm md:text-base"
                   onClick={() => setBundleModalOpen(true)}
                 >
                   See What's Included
@@ -205,7 +203,10 @@ export default function GetStartedComponentThree({
             <div className="w-full mb-6">
               <h3 className="text-lg md:text-xl font-bold text-[#417a5a] mb-4">Individual State Resources</h3>
               {loadingBundles ? (
-                <p className="text-center text-[#417a5a] py-8">Loading individual bundles...</p>
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader size={32} className="text-green-700 animate-spin" />
+                  <p className="text-center text-[#417a5a] text-sm">Loading individual bundles...</p>
+                </div>
               ) : stateResources.length === 0 ? (
                 <p className="text-center text-[#417a5a] py-8">No individual bundles available for {stateNames[selectedState]}</p>
               ) : (
@@ -227,7 +228,7 @@ export default function GetStartedComponentThree({
                         name: resource.label,
                         price: itemPrice,
                         type: selectedType,
-                        state: stateNames[selectedState],
+                        state: selectedState,
                         quantity: 1,
                         // Add database connection fields
                         product_id: resource.bundleId,
@@ -274,22 +275,25 @@ export default function GetStartedComponentThree({
       <BundleModal
         open={bundleModalOpen}
         onClose={() => setBundleModalOpen(false)}
+        state={stateNames[selectedState]}
+        stateAbbr={selectedState}
+        program={selectedType}
         bundleTitle={completeBundle?.name || `Complete Licensing Bundle - ${selectedType}`}
         productSlug={completeBundle?.product_slug}
-        price={completeBundle?.price ?? 997}
-        oldPrice={completeBundle?.metadata?.oldPrice ?? 2285}
-        saveAmount={(completeBundle?.metadata?.oldPrice ?? 2285) - (completeBundle?.price ?? 997)}
+        price={completeBundle?.price}
+        oldPrice={completeBundle?.metadata?.oldPrice}
+        saveAmount={completeBundle?.metadata?.oldPrice && completeBundle?.price ? completeBundle.metadata.oldPrice - completeBundle.price : 0}
         items={
           completeBundle?.features && completeBundle.features.length > 0
             ? completeBundle.features.map((label: string) => ({ label, price: 0 }))
-            : bundleProducts.map((p) => ({ label: p.key, price: 297 }))
+            : bundleProducts.map((p) => ({ label: p.key, price: 0 }))
         }
         bonuses={
           completeBundle?.metadata?.bonuses && completeBundle.metadata.bonuses.length > 0
             ? completeBundle.metadata.bonuses
             : bonusProducts.map((p) => p.key)
         }
-        coursePrice={completeBundle?.metadata?.coursePrice ?? 297}
+        coursePrice={completeBundle?.metadata?.coursePrice}
       />
       <GetStartedStickyBar
         onBack={() => router.push(`/get-started?state=${selectedState}`)}
@@ -321,14 +325,29 @@ export default function GetStartedComponentThree({
       <DetailsModal
         open={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
+        onRequestCompare={() => {
+          setDetailsModalOpen(false);
+          setCompareModalOpen(true);
+        }}
         state={stateNames[selectedState]}
         agencyType={selectedType}
-        price={detailsProduct.price || 397}
-        oldPrice={detailsProduct.oldPrice || detailsProduct.price + 100 || 516}
+        price={detailsProduct.price}
+        oldPrice={detailsProduct.oldPrice}
         features={detailsProduct.features || [detailsProduct.description || detailsProduct.desc]}
         productKey={detailsProduct.key || detailsProduct.label}
         productDesc={detailsProduct.description || detailsProduct.desc}
         productTitle={detailsProduct.label || detailsProduct.key || detailsProduct.title || ''}
+      />
+    )}
+    {/* Compare Modal for upgrade flow */}
+    {compareModalOpen && detailsProduct && (
+      <CompareModal
+        open={compareModalOpen}
+        onClose={() => setCompareModalOpen(false)}
+        currentProduct={detailsProduct}
+        state={stateNames[selectedState]}
+        stateAbbr={selectedState}
+        bundleTitle={completeBundle?.name || `Complete Licensing Bundle - ${selectedType}`}
       />
     )}
     </>

@@ -304,7 +304,7 @@ export default function CheckoutClient() {
         <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-black">Order Summary</h2>
         {items.map((item) => (
           <div key={item.id} className="flex items-center justify-between mb-3 md:mb-4 gap-2">
-            <div className="flex items-start gap-2 md:gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-green-800 text-white flex items-center justify-center font-bold text-xs md:text-lg">
                 {item.state ? item.state.slice(0, 2).toUpperCase() : "CT"}
               </div>
@@ -315,9 +315,9 @@ export default function CheckoutClient() {
                   <div className="text-xs text-gray-600 truncate">{item.metadata.program}</div>
                 )}
                 {/* Show file type indicator or product type */}
-                <div className="text-xs text-gray-500">
+                {/* <div className="text-xs text-gray-500">
                   {item.type === "bundle" ? "Complete Bundle" : "Individual Document"}
-                </div>
+                </div> */}
               </div>
             </div>
             <div className="font-bold text-black text-sm md:text-lg flex-shrink-0 ml-2">${item.price}</div>

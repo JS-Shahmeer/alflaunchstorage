@@ -10,6 +10,7 @@ import {
   X,
   Box,
   ShieldCheck,
+  Loader,
 } from "lucide-react";
 import { BsLightning } from "react-icons/bs";
 import { useToast } from "./SimpleToast";
@@ -19,14 +20,22 @@ interface CompareModalProps {
   open: boolean;
   onClose: () => void;
   currentProduct: BundleProduct;
+  state: string;
+  stateAbbr: string;
+  bundleTitle?: string;
 }
 
 export default function CompareModal({
   open,
   onClose,
   currentProduct,
+  state,
+  stateAbbr,
+  bundleTitle,
 }: CompareModalProps) {
   const [secondsLeft, setSecondsLeft] = useState(590);
+  const [completeBundle, setCompleteBundle] = useState<BundleProduct | null>(null);
+  const [loadingBundle, setLoadingBundle] = useState(false);
   const toast = useToast();
   const { buyNow, loading: buyLoading } = useBuyNow();
 
@@ -39,6 +48,44 @@ export default function CompareModal({
     return () => clearInterval(interval);
   }, [open]);
 
+  // Fetch the complete bundle for the current state
+  useEffect(() => {
+    if (!open) return;
+    
+    const currentProductAny = currentProduct as any;
+    const program = currentProductAny.bundleProgram || currentProduct.metadata?.program || currentProduct.program;
+    
+    if (!state || !program) {
+      setCompleteBundle(null);
+      return;
+    }
+
+    const fetchCompleteBundle = async () => {
+      setLoadingBundle(true);
+      try {
+        const response = await fetch(`/api/products?includeIndividual=false&state=${encodeURIComponent(state)}`);
+        const data = await response.json();
+        
+        if (response.ok && data.products) {
+          // Find the complete bundle that matches the current program
+          const bundle = data.products.find(
+            (p: BundleProduct) =>
+              p.metadata?.productLabel === 'Complete Bundle' &&
+              p.metadata?.program === program
+          );
+          setCompleteBundle(bundle || null);
+        }
+      } catch (error) {
+        console.error('Error fetching complete bundle:', error);
+        setCompleteBundle(null);
+      } finally {
+        setLoadingBundle(false);
+      }
+    };
+
+    fetchCompleteBundle();
+  }, [open, currentProduct, state, stateAbbr]);
+
   if (!open) return null;
 
   const sampleName =
@@ -47,21 +94,23 @@ export default function CompareModal({
     currentProduct.type ||
     "Selected Resource";
   const samplePrice = currentProduct.price ?? 397;
-  const stateName =
-    currentProduct.metadata?.state || currentProduct.state || "State";
-  const bundleTitle = `Complete Bundle ${stateName}`;
-  const bundlePrice = 997;
-  const oldPrice = 2285;
-  const saveAmount = oldPrice - bundlePrice;
+  const displayBundleTitle = bundleTitle || completeBundle?.name || `Complete State Licensing Bundle`;
+  const bundlePrice = completeBundle?.price;
+  const oldPrice = completeBundle?.metadata?.oldPrice;
+  const saveAmount = oldPrice && bundlePrice ? oldPrice - bundlePrice : 0;
 
   async function handleAddCompleteBundle() {
+    if (!bundlePrice || !completeBundle) {
+      toast.show('Complete bundle pricing not available');
+      return;
+    }
     onClose();
     buyNow({
-      id: currentProduct.product_slug || `complete-bundle-${stateName.toLowerCase().replace(/\s+/g, "-")}`,
-      name: bundleTitle,
+      id: completeBundle?.product_slug || currentProduct.product_slug || `complete-bundle-${state.toLowerCase().replace(/\s+/g, "-")}`,
+      name: displayBundleTitle,
       price: bundlePrice,
       type: "Complete Bundle",
-      state: stateName,
+      state: stateAbbr,
       quantity: 1,
     });
   }
@@ -76,7 +125,7 @@ export default function CompareModal({
         currentProduct.type ||
         currentProduct.metadata?.productLabel ||
         "Individual Resource",
-      state: stateName,
+      state: stateAbbr,
       quantity: 1,
     });
   }
@@ -126,7 +175,7 @@ export default function CompareModal({
             </h2>
             <p className="text-gray-700 text-center text-sm">
               The comparison below shows your selected sample versus the
-              complete bundle for {stateName}.
+              complete bundle for {state}.
             </p>
           </div>
 
@@ -166,7 +215,7 @@ export default function CompareModal({
                   Sample price
                 </div>
                 <div className="mt-2 text-3xl font-bold text-slate-900">
-                  ${samplePrice}
+                  {samplePrice ? `$${samplePrice}` : 'Loading...'}
                 </div>
               </div>
             </div>
@@ -185,24 +234,51 @@ export default function CompareModal({
                 style={{ boxShadow: "0 2px 16px 0 #f6e7b2" }}
               >
                 <div className="flex flex-col items-center gap-2 mb-2">
-                  <span className="flex items-center gap-2 pt-4 text-yellow-900 text-2xl font-bold">
+                  <span className="flex items-start gap-3 pt-4 text-yellow-900 text-xl font-bold">
                     <Box size={28} className="text-yellow-900" />
-                    {bundleTitle}
+                    {loadingBundle ? (
+                      <div className="flex items-center gap-2">
+                        <Loader size={24} className="text-green-700 animate-spin" />
+                        <span className="text-base text-gray-600">Loading...</span>
+                      </div>
+                    ) : (
+                      displayBundleTitle || 'Complete State Licensing Bundle'
+                    )}
                   </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-400 text-lg line-through">
-                      ${oldPrice}
-                    </span>
-                    <span className="text-4xl font-bold text-green-800">
-                      ${bundlePrice}
-                    </span>
-                  </div>
-                  <span className="bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm mt-1">
-                    SAVE ${saveAmount} (56% OFF)
-                  </span>
+                  {loadingBundle ? (
+                    <div className="flex flex-col items-center gap-3 mt-4 w-full">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 bg-gray-200 rounded animate-pulse" style={{width: '200px'}}></div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Loader size={28} className="text-green-700 animate-spin" />
+                        <span className="text-sm text-gray-600">Fetching pricing...</span>
+                      </div>
+                    </div>
+                  ) : bundlePrice !== undefined ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        {oldPrice !== undefined && (
+                          <span className="text-gray-400 text-lg line-through">
+                            ${oldPrice.toFixed(2)}
+                          </span>
+                        )}
+                        <span className="text-4xl font-bold text-green-800">
+                          {bundlePrice ? `$${bundlePrice.toFixed(2)}` : 'N/A'}
+                        </span>
+                      </div>
+                      {saveAmount > 0 && oldPrice !== undefined && (
+                        <span className="bg-green-600 text-white font-bold px-4 py-1 rounded-full text-sm mt-2">
+                          SAVE ${saveAmount.toFixed(2)} ({Math.round((saveAmount / oldPrice) * 100)}% OFF)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-500 text-sm mt-2">Pricing unavailable</span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="grid grid-cols-1 gap-4 mt-4">
                   <div>
                     <div className="font-bold text-gray-900 mb-2">
                       What's Included:
@@ -287,13 +363,21 @@ export default function CompareModal({
 
         <div className="py-2 px-4 flex flex-col gap-3">
           <button
-            className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition"
+            className="w-full bg-yellow-400 cursor-pointer hover:bg-yellow-500 disabled:bg-yellow-200 disabled:cursor-not-allowed text-green-900 font-bold py-3 rounded-lg mt-2 text-lg transition flex items-center justify-center gap-2"
             onClick={handleAddCompleteBundle}
+            disabled={loadingBundle || !bundlePrice}
           >
-            Upgrade to Complete Bundle - ${bundlePrice}
+            {loadingBundle ? (
+              <>
+                <Loader size={20} className="text-green-700 animate-spin" />
+                <span>Loading pricing...</span>
+              </>
+            ) : (
+              `Upgrade to Complete Bundle - ${bundlePrice ? `$${bundlePrice.toFixed(2)}` : 'N/A'}`
+            )}
           </button>
           <p className="text-xs text-gray-500 text-center">
-            Save 56% - This offer expires when the timer hits zero
+            {saveAmount > 0 && oldPrice ? `Save ${Math.round((saveAmount / oldPrice) * 100)}%` : ''} - This offer expires when the timer hits zero
           </p>
           <button
             onClick={handleAddSampleOnly}
