@@ -111,6 +111,10 @@ async function parseJson<T>(response: Response): Promise<T> {
   try {
     return text ? JSON.parse(text) : ({} as T);
   } catch (error) {
+    // If response is HTML, it's likely a server error page
+    if (text && text.includes("<html") || text.includes("<!DOCTYPE")) {
+      throw new Error("Server returned an error page. Please check your connection or try again later.");
+    }
     throw new Error(`Invalid JSON response: ${error}`);
   }
 }
@@ -159,15 +163,26 @@ export async function createAdminBundle(payload: BundleFormPayload): Promise<Bun
 }
 
 export async function uploadBundleFiles(formData: FormData): Promise<BundleFileMetadata[]> {
-  const response = await fetch("/api/admin/bundles/upload-files", {
-    method: "POST",
-    body: formData,
-  });
-  const body = await parseJson<any>(response);
-  if (!response.ok) {
-    throw new Error(body?.error || "Unable to upload bundle files.");
+  try {
+    const response = await fetch("/api/admin/bundles/upload-files", {
+      method: "POST",
+      body: formData,
+    });
+    
+    const body = await parseJson<any>(response);
+    
+    if (!response.ok) {
+      throw new Error(body?.error || `Upload failed with status ${response.status}`);
+    }
+    
+    return body.files || [];
+  } catch (error) {
+    // Re-throw with more context
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Unable to upload bundle files. Please try again.");
   }
-  return body.files || [];
 }
 
 export async function updateAdminBundle(id: string, payload: Partial<BundleFormPayload>): Promise<BundleProduct> {
