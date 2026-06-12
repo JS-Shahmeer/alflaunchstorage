@@ -61,11 +61,12 @@ export default function BundleModal({
         const data = await response.json();
         
         if (response.ok && data.products) {
-          // Find the complete bundle that matches the current program
+          // Find the complete bundle that matches the current state AND program
           const bundle = data.products.find(
             (p: any) =>
               p.metadata?.productLabel === 'Complete Bundle' &&
-              p.metadata?.program === program
+              p.metadata?.program === program &&
+              p.metadata?.state === state
           );
           setCompleteBundle(bundle || null);
         }

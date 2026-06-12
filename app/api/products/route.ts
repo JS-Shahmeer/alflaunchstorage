@@ -343,6 +343,9 @@ export async function GET(request: Request) {
   if (includeIndividual && state) {
     // Fetch individual bundles for a specific state
     result = await fetchIndividualBundlesForState(supabase, state);
+  } else if (!includeIndividual && state) {
+    // Fetch complete bundles for a specific state
+    result = await fetchIndividualBundlesForState(supabase, state);
   } else {
     // Fetch regular products (excluding individual bundles)
     result = await fetchProductsWithMetadata(supabase);
