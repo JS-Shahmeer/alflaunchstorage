@@ -2,7 +2,7 @@
 import { ChevronLeft, Loader } from "lucide-react";
 import React from "react";
 
-export default function CheckoutCustomerInfo({ form, handleChange, handleContinue, loading, errors }: {
+export default function CheckoutCustomerInfo({ form, handleChange, handleContinue, loading, errors, isGuest = false }: {
   form: {
     email: string;
     firstName: string;
@@ -14,10 +14,18 @@ export default function CheckoutCustomerInfo({ form, handleChange, handleContinu
   handleContinue: () => void;
   loading: boolean;
   errors: { [key: string]: string };
+  isGuest?: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-md w-full lg:max-w-xl">
       <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-black">Customer Information</h2>
+      {isGuest && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+          <p className="text-xs md:text-sm text-blue-800">
+            <span className="font-semibold">Guest Checkout:</span> Complete your purchase with just an email. You can create an account after checkout to access your dashboard.
+          </p>
+        </div>
+      )}
       <form>
         <div className="mb-3 md:mb-4">
           <label className="block font-semibold mb-1 text-gray-600 text-sm md:text-base">Email Address *</label>
@@ -34,7 +42,9 @@ export default function CheckoutCustomerInfo({ form, handleChange, handleContinu
         </div>
         <div className="flex gap-2 md:gap-4 mb-3 md:mb-4 flex-col sm:flex-row">
           <div className="flex-1">
-            <label className="block font-semibold mb-1 text-gray-600 text-sm md:text-base">First Name *</label>
+            <label className="block font-semibold mb-1 text-gray-600 text-sm md:text-base">
+              First Name {!isGuest && "*"}
+            </label>
             <input
               type="text"
               name="firstName"
@@ -42,12 +52,14 @@ export default function CheckoutCustomerInfo({ form, handleChange, handleContinu
               onChange={handleChange}
               className={`w-full border rounded-lg px-3 md:px-4 py-2 md:py-3 text-gray-600 text-sm md:text-base ${errors.firstName ? 'border-red-500' : 'border-[#cecece]'}`}
               placeholder="John"
-              required
+              required={!isGuest}
             />
             {errors.firstName && <p className="text-red-500 text-xs md:text-sm mt-1">{errors.firstName}</p>}
           </div>
           <div className="flex-1">
-            <label className="block font-semibold mb-1 text-gray-600 text-sm md:text-base">Last Name *</label>
+            <label className="block font-semibold mb-1 text-gray-600 text-sm md:text-base">
+              Last Name {!isGuest && "*"}
+            </label>
             <input
               type="text"
               name="lastName"
@@ -55,7 +67,7 @@ export default function CheckoutCustomerInfo({ form, handleChange, handleContinu
               onChange={handleChange}
               className={`w-full border rounded-lg px-3 md:px-4 py-2 md:py-3 text-gray-600 text-sm md:text-base ${errors.lastName ? 'border-red-500' : 'border-[#cecece]'}`}
               placeholder="Doe"
-              required
+              required={!isGuest}
             />
             {errors.lastName && <p className="text-red-500 text-xs md:text-sm mt-1">{errors.lastName}</p>}
           </div>

@@ -5,16 +5,20 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../components/AuthContext';
+import { useAuthModal } from '../components/AuthModalContext';
+import AuthModal from '../components/AuthModal';
 
 export default function CheckoutSuccessClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, session, loading: authLoading } = useAuth();
+  const { authModalOpen, openAuthModal, closeAuthModal } = useAuthModal();
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Verifying your purchase...');
   const [error, setError] = useState<string | null>(null);
   const [purchaseData, setPurchaseData] = useState<any>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   const sessionId = searchParams.get('session_id');
   const maxRetries = 3;
@@ -22,12 +26,6 @@ export default function CheckoutSuccessClient() {
 
   useEffect(() => {
     if (authLoading) {
-      return;
-    }
-
-    if (!user) {
-      // Redirect to login if not authenticated
-      router.push('/?login=true');
       return;
     }
 
@@ -59,6 +57,10 @@ export default function CheckoutSuccessClient() {
 
         if (response.ok) {
           setPurchaseData(data);
+          // Show auth prompt if user is not authenticated (guest checkout)
+          if (!user) {
+            setShowAuthPrompt(true);
+          }
           setLoading(false);
           return;
         }
@@ -89,7 +91,7 @@ export default function CheckoutSuccessClient() {
       cancelled = true;
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [sessionId, user, session, authLoading, retryCount, router]);
+  }, [sessionId, user, session, authLoading, retryCount]);
 
   if (loading) {
     return (
@@ -124,9 +126,10 @@ export default function CheckoutSuccessClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-10">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-xl shadow-md p-8 text-center">
+    <>
+      <div className="min-h-screen bg-gray-50 pt-20 pb-10">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
           <CheckCircle className="text-green-600 w-16 h-16 mx-auto mb-6" />
 
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -157,6 +160,24 @@ export default function CheckoutSuccessClient() {
             </div>
           )}
 
+          {showAuthPrompt && !user && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-8">
+              <h3 className="font-semibold text-blue-900 mb-2 text-lg">Create Your Account</h3>
+              <p className="text-blue-800 mb-4">
+                Sign up now to access your purchased products and unlock exclusive dashboard features!
+              </p>
+              <button
+                onClick={() => openAuthModal()}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+              >
+                Create Account / Sign In
+              </button>
+              <p className="text-sm text-gray-600 mt-4">
+                You can also browse our shop or contact support if you have any questions.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-4 flex flex-col sm:flex-row sm:space-x-4 sm:space-y-0">
             <Link
               href="/shop"
@@ -164,12 +185,14 @@ export default function CheckoutSuccessClient() {
             >
               Continue Shopping
             </Link>
-            <Link
-              href="/dashboard"
-              className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-            >
-              View Dashboard
-            </Link>
+            {user && (
+              <Link
+                href="/dashboard"
+                className="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+              >
+                View Dashboard
+              </Link>
+            )}
           </div>
 
           <div className="mt-8 text-sm text-gray-500">
@@ -178,8 +201,10 @@ export default function CheckoutSuccessClient() {
               If you have any questions, please contact our support team.
             </p>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+      <AuthModal isOpen={authModalOpen} onClose={closeAuthModal} />
+    </>
   );
 }

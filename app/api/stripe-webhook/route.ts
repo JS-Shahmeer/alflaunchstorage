@@ -74,11 +74,21 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, supabase: any) {
   try {
     const userId = session.metadata?.user_id;
+    const isCourseEnrollment = session.metadata?.enrollment_type === 'course' || 
+                               session.metadata?.course_type === 'operational-success-academy';
     
-    if (!userId) {
-      console.error('No user_id in session metadata - checkout requires authentication');
-      return;
-    }
+    console.log('📋 Checkout session completed:');
+    console.log('  - enrollment_type:', session.metadata?.enrollment_type);
+    console.log('  - course_type:', session.metadata?.course_type);
+    console.log('  - isCourseEnrollment:', isCourseEnrollment);
+    console.log('  - userId:', userId);
+    console.log('  - session.customer_details?.email:', session.customer_details?.email);
+    
+    // For course enrollments and guest checkouts, user_id is optional
+    // Both will now be supported (public checkout)
+    const isGuestCheckout = !userId;
+    
+    console.log('  - isGuestCheckout:', isGuestCheckout);
 
     const discountCode = session.metadata?.discount_code || '';
     const discountPercent = parseFloat(session.metadata?.discount_percent || '0');
@@ -87,8 +97,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     const total = parseFloat(session.metadata?.total || '0');
     const customerInfo = JSON.parse(session.metadata?.customer_info || '{}');
     const items = JSON.parse(session.metadata?.items || '[]');
+    const courseEmail = session.customer_details?.email || session.metadata?.customer_email || customerInfo.email;
 
-    console.log(`📦 Processing checkout for user ${userId} with ${items.length} item(s):`, items);
+    console.log(`📦 Processing checkout for ${isCourseEnrollment ? 'course' : `user ${userId}`} with ${items.length} item(s):`, items);
 
     const enrichedItems: any[] = [];
 
@@ -137,23 +148,31 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     }
 
     // Update or create purchase record
+    const purchaseData: any = {
+      stripe_session_id: session.id,
+      stripe_payment_intent_id: session.payment_intent as string,
+      amount: total,
+      discount_code: discountCode,
+      discount_amount: (subtotal * discountPercent) / 100,
+      tax_amount: taxAmount,
+      status: 'completed',
+      metadata: {
+        customer_email: courseEmail,
+        customer_name: session.customer_details?.name || `${session.customer_details?.name || ''}`.trim() || 'Course Enrollee',
+        customer_info: customerInfo,
+        items: enrichedItems,
+        stripe_session: session,
+      },
+    };
+
+    // Include user_id if available
+    if (userId) {
+      purchaseData.user_id = userId;
+    }
+
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
-      .upsert({
-        user_id: userId,
-        stripe_session_id: session.id,
-        stripe_payment_intent_id: session.payment_intent as string,
-        amount: total,
-        discount_code: discountCode,
-        discount_amount: (subtotal * discountPercent) / 100,
-        tax_amount: taxAmount,
-        status: 'completed',
-        metadata: {
-          customer_info: customerInfo,
-          items: enrichedItems,
-          stripe_session: session,
-        },
-      })
+      .upsert(purchaseData)
       .select()
       .single();
 
@@ -162,62 +181,64 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       return;
     }
 
-    // Grant product access
-    const grantErrors: any[] = [];
-    for (const enrichedItem of enrichedItems) {
-      if (!enrichedItem.product_id) {
-        console.warn(`No product_id for item: ${enrichedItem.name}`);
-        continue;
+    // Grant product access only if user is logged in
+    if (userId) {
+      const grantErrors: any[] = [];
+      for (const enrichedItem of enrichedItems) {
+        if (!enrichedItem.product_id) {
+          console.warn(`No product_id for item: ${enrichedItem.name}`);
+          continue;
+        }
+
+        const { error: grantError } = await supabase
+          .from('user_products')
+          .upsert({
+            user_id: userId,
+            product_id: enrichedItem.product_id,
+            purchase_id: purchase.id,
+            granted_at: new Date().toISOString(),
+            is_active: true,
+          });
+
+        if (grantError) {
+          console.error(`Failed to grant access to product ${enrichedItem.product_id}:`, grantError);
+          grantErrors.push({ product_id: enrichedItem.product_id, error: grantError });
+        } else {
+          console.log(`✓ Granted access to product ${enrichedItem.product_id} (${enrichedItem.name})`);
+        }
       }
 
-      const { error: grantError } = await supabase
-        .from('user_products')
-        .upsert({
-          user_id: userId,
-          product_id: enrichedItem.product_id,
-          purchase_id: purchase.id,
-          granted_at: new Date().toISOString(),
-          is_active: true,
-        });
-
-      if (grantError) {
-        console.error(`Failed to grant access to product ${enrichedItem.product_id}:`, grantError);
-        grantErrors.push({ product_id: enrichedItem.product_id, error: grantError });
+      if (grantErrors.length > 0) {
+        console.error(`⚠️ WARNING: Purchase ${purchase.id} completed but ${grantErrors.length} product(s) failed to grant access:`, grantErrors);
       } else {
-        console.log(`✓ Granted access to product ${enrichedItem.product_id} (${enrichedItem.name})`);
+        console.log(`✓ All ${enrichedItems.length} product(s) access granted for purchase ${purchase.id}`);
       }
-    }
 
-    if (grantErrors.length > 0) {
-      console.error(`⚠️ WARNING: Purchase ${purchase.id} completed but ${grantErrors.length} product(s) failed to grant access:`, grantErrors);
-    } else {
-      console.log(`✓ All ${enrichedItems.length} product(s) access granted for purchase ${purchase.id}`);
-    }
-
-    // Update profile with customer info if provided
-    if (customerInfo.firstName || customerInfo.lastName || customerInfo.company || customerInfo.phone) {
-      await supabase
-        .from('profiles')
-        .update({
-          first_name: customerInfo.firstName,
-          last_name: customerInfo.lastName,
-          company: customerInfo.company,
-          phone: customerInfo.phone,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
+      // Update profile with customer info if provided
+      if (customerInfo.firstName || customerInfo.lastName || customerInfo.company || customerInfo.phone) {
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: customerInfo.firstName,
+            last_name: customerInfo.lastName,
+            company: customerInfo.company,
+            phone: customerInfo.phone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+      }
     }
 
     const skoolCourseIds = enrichedItems
       .map((item) => item.skool_course_id)
       .filter((id) => id) as string[];
 
-    // Send data to Zapier webhook
+    // Send data to Zapier webhook for automations
     await sendToZapier({
       event: 'checkout.session.completed',
       user_id: userId,
       purchase_id: purchase.id,
-      customer_email: session.customer_details?.email || customerInfo.email,
+      customer_email: courseEmail,
       customer_first_name: session.customer_details?.name?.split(' ')[0] || customerInfo.firstName || null,
       customer_last_name: session.customer_details?.name?.split(' ').slice(1).join(' ') || customerInfo.lastName || null,
       customer_name: session.customer_details?.name || `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
@@ -234,7 +255,27 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       stripe_payment_intent_id: session.payment_intent as string,
       stripe_customer_id: session.customer as string,
       purchase_date: new Date().toISOString(),
+      // Course-specific fields
+      is_course_enrollment: isCourseEnrollment,
+      course_type: session.metadata?.course_type || null,
+      course_email: courseEmail,
     });
+
+    // Handle course enrollment specific automations
+    if (isCourseEnrollment) {
+      console.log(`🎓 Course Enrollment Detected for ${courseEmail}`);
+      
+      // Send course enrollment to external automation service
+      await handleCourseEnrollmentAutomation({
+        user_id: userId,
+        purchase_id: purchase.id,
+        customer_email: courseEmail,
+        customer_name: session.customer_details?.name || `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
+        course_type: session.metadata?.course_type || 'operational-success-academy',
+        amount: total,
+        stripe_session_id: session.id,
+      });
+    }
 
     // Mark webhook as processed
     await supabase
@@ -291,5 +332,117 @@ async function sendToZapier(data: any) {
     }
   } catch (error) {
     console.error('Error sending data to Zapier:', error);
+  }
+}
+
+async function handleCourseEnrollmentAutomation(data: {
+  user_id?: string;
+  purchase_id: string;
+  customer_email: string;
+  customer_name: string;
+  course_type: string;
+  amount: number;
+  stripe_session_id: string;
+}) {
+  /**
+   * This function handles course enrollment automations:
+   * 1. Sends Skool course invite email to the customer
+   * 2. Triggers GHL automation (Go High Level)
+   * 3. Tags contact in GHL with course enrollment tag
+   * 4. Adds to GHL course pipeline
+   */
+
+  console.log('🚀 handleCourseEnrollmentAutomation called with data:', {
+    customer_email: data.customer_email,
+    customer_name: data.customer_name,
+    course_type: data.course_type,
+    has_user_id: !!data.user_id,
+  });
+
+  try {
+    // Send to Go High Level API if configured
+    const ghlWebhookUrl = process.env.GHL_WEBHOOK_URL;
+    console.log('GHL_WEBHOOK_URL configured:', !!ghlWebhookUrl);
+    if (ghlWebhookUrl) {
+      console.log(`📤 Sending course enrollment to GHL for ${data.customer_email}`);
+      
+      const ghlData = {
+        event_type: 'course_enrollment',
+        contact_email: data.customer_email,
+        contact_name: data.customer_name,
+        course_type: data.course_type,
+        purchase_id: data.purchase_id,
+        enrollment_date: new Date().toISOString(),
+        amount: data.amount,
+        stripe_session_id: data.stripe_session_id,
+      };
+
+      try {
+        const ghlResponse = await fetch(ghlWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(ghlData),
+        });
+
+        if (ghlResponse.ok) {
+          console.log('✓ Successfully sent to GHL');
+        } else {
+          console.error('Failed to send to GHL:', ghlResponse.statusText);
+        }
+      } catch (error) {
+        console.error('Error sending to GHL:', error);
+      }
+    }
+
+    // Send Skool invite via Zapier if configured
+    const skoolZapierUrl = process.env.SKOOL_INVITE_WEBHOOK_URL || process.env.ZAPIER_WEBHOOK_URL;
+    console.log('SKOOL_INVITE_WEBHOOK_URL:', !!process.env.SKOOL_INVITE_WEBHOOK_URL);
+    console.log('ZAPIER_WEBHOOK_URL:', !!process.env.ZAPIER_WEBHOOK_URL);
+    console.log('Final skoolZapierUrl:', skoolZapierUrl);
+    
+    if (skoolZapierUrl) {
+      console.log(`📧 Sending Skool course invite to ${data.customer_email}`);
+      
+      const skoolData = {
+        event: 'course_enrollment_send_skool_invite',
+        customer_email: data.customer_email,
+        customer_name: data.customer_name,
+        course_type: data.course_type,
+        course_name: 'Care Licensing Solutions Operational Success Academy',
+        purchase_id: data.purchase_id,
+        enrollment_date: new Date().toISOString(),
+      };
+
+      console.log('📨 Sending payload to Zapier:', JSON.stringify(skoolData, null, 2));
+
+      try {
+        const skoolResponse = await fetch(skoolZapierUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(skoolData),
+        });
+
+        const responseText = await skoolResponse.text();
+        console.log(`Zapier response status: ${skoolResponse.status}`);
+        console.log(`Zapier response body: ${responseText}`);
+
+        if (skoolResponse.ok) {
+          console.log('✓ Skool invite sent successfully to Zapier');
+        } else {
+          console.error('Failed to send Skool invite to Zapier:', skoolResponse.statusText);
+        }
+      } catch (error) {
+        console.error('Error sending Skool invite to Zapier:', error);
+      }
+    } else {
+      console.error('⚠️ No Zapier webhook URL configured (SKOOL_INVITE_WEBHOOK_URL or ZAPIER_WEBHOOK_URL)');
+    }
+
+  } catch (error) {
+    console.error('Error handling course enrollment automation:', error);
   }
 }

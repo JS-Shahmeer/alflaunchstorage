@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart3,
@@ -11,13 +12,41 @@ import {
   Star,
 } from "lucide-react";
 import { gsap } from "gsap";
+import Swal from "sweetalert2";
+import { useAuth } from "@/app/components/AuthContext";
+import { useCart } from "@/app/components/cart-context";
 
 const CoursePageHeroSection = () => {
+  const router = useRouter();
+  const { user, session, loading: authLoading } = useAuth();
+  const { addItem } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
   const heroRef = useRef(null);
   const leftRef = useRef(null);
   const rightRef = useRef(null);
   const itemsRef = useRef<HTMLDivElement[]>([]);
   const staggerRefs = useRef<HTMLAnchorElement[]>([]);
+
+  const handleEnrollClick = () => {
+    // Add course to cart
+    const courseItem = {
+      id: "course-operational-success-academy",
+      name: "Care Licensing Solutions Operational Success Academy",
+      price: 697,
+      type: "course",
+      product_slug: "course-operational-success-academy",
+      metadata: {
+        course_type: "operational-success-academy",
+        enrollment_type: "course",
+        description: "Complete 11-module video training system for care business licensing and operations",
+      },
+    };
+    
+    addItem(courseItem);
+    
+    // Navigate to main checkout page
+    router.push("/checkout");
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -107,16 +136,13 @@ const CoursePageHeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
-            <a
-              href="/shop"
-              ref={(el) => {
-                if (el) staggerRefs.current[0] = el;
-              }}
-              className="stagger-item flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg shadow-lg transition"
+            <button
+              onClick={handleEnrollClick}
+              className="stagger-item cursor-pointer flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-lg shadow-lg transition"
             >
               Enroll Now - $697
               <ArrowRight size={18} />
-            </a>
+            </button>
 
             <a
               href="#lessons"

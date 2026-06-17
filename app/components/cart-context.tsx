@@ -65,12 +65,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   function addItem(item: CartItem) {
-    if (!user && !authLoading) {
-      toast.show("Please log in or sign up to add items to your cart.");
-      openAuthModal();
-      return;
-    }
-
     setItems((prev) => {
       const itemId = item.id || item.name;
       const existing = prev.find((i) => i.id === itemId);

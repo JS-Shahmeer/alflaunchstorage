@@ -110,8 +110,11 @@ export default function CheckoutClient() {
     if (!form.email) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email))
       newErrors.email = "Invalid email format";
-    if (!form.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
+    // For authenticated users, require first and last name. For guests, it's optional
+    if (user) {
+      if (!form.firstName.trim()) newErrors.firstName = "First name is required";
+      if (!form.lastName.trim()) newErrors.lastName = "Last name is required";
+    }
     return newErrors;
   }
 
@@ -244,24 +247,7 @@ export default function CheckoutClient() {
 
   // Check if user is authenticated
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-xl shadow-md">
-          <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <LogIn size={32} className="text-green-600" />
-          </div>
-          <h2 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Authentication Required</h2>
-          <p className="text-gray-600 mb-6">Please log in or sign up to proceed with checkout</p>
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-          >
-            Login / Sign Up
-          </button>
-        </div>
-        {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
-      </div>
-    );
+    console.log("User not authenticated - allowing guest checkout");
   }
 
   if (items.length === 0 && step < 4) {
@@ -398,6 +384,7 @@ export default function CheckoutClient() {
             handleContinue={handleContinue}
             loading={loading}
             errors={errors}
+            isGuest={!user}
           />
         )}
         {step === 3 && (

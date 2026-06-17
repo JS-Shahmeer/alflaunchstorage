@@ -70,20 +70,13 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization') || '';
     const accessToken = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
+    // Get user if authenticated, but allow guest checkout verification
+    let user: any = null;
+    if (accessToken) {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+      if (!authError && authUser) {
+        user = authUser;
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -96,9 +89,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get purchase details by session ID and verify it belongs to the current user
-    let { data: purchase, error: purchaseError }:
-      { data: any | null; error: any } = await supabase
+    // Get purchase details by session ID first.
+    // Ownership/claim checks are handled after fetch so guest purchases can be
+    // attached to a newly authenticated user on the success page.
+    const query = supabase
       .from('purchases')
       .select(`
         id,
@@ -115,8 +109,10 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('stripe_session_id', sessionId)
-      .eq('user_id', user.id)
+      .eq('stripe_session_id', sessionId);
+
+    let { data: purchase, error: purchaseError }:
+      { data: any | null; error: any } = await query
       .single();
 
     if (purchaseError || !purchase) {
@@ -129,38 +125,85 @@ export async function GET(request: NextRequest) {
 
       const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-      if (!session || session.payment_status !== 'paid' || session.metadata?.user_id !== user.id) {
+      if (!session || session.payment_status !== 'paid') {
         return NextResponse.json(
           { error: "Purchase not found" },
           { status: 404 }
         );
       }
 
-      const customerInfo = JSON.parse(session.metadata?.customer_info || '{}');
+      // For course enrollments, don't require user_id match (public checkout)
+      // For product purchases, require user_id match if user is authenticated
+      const isCourseEnrollment = session.metadata?.enrollment_type === 'course' || 
+                                 session.metadata?.course_type === 'operational-success-academy';
+      const sessionCustomerInfo = JSON.parse(session.metadata?.customer_info || '{}');
+      const sessionEmail =
+        session.customer_details?.email ||
+        session.metadata?.customer_email ||
+        sessionCustomerInfo.email ||
+        null;
+      const userEmail = user?.email || null;
+      
+      if (!isCourseEnrollment && user) {
+        const metadataUserId = session.metadata?.user_id;
+
+        // If checkout was tied to a user_id, enforce exact ownership.
+        if (metadataUserId && metadataUserId !== user.id) {
+          return NextResponse.json(
+            { error: "Purchase not found" },
+            { status: 404 }
+          );
+        }
+
+        // If checkout was guest (no user_id), allow claim only when emails match.
+        if (!metadataUserId) {
+          const emailMatches =
+            !!sessionEmail &&
+            !!userEmail &&
+            sessionEmail.toLowerCase() === userEmail.toLowerCase();
+
+          if (!emailMatches) {
+            return NextResponse.json(
+              { error: "Purchase not found" },
+              { status: 404 }
+            );
+          }
+        }
+      }
+
+      const customerInfo = sessionCustomerInfo;
       const items = JSON.parse(session.metadata?.items || '[]');
       const discountPercent = parseFloat(session.metadata?.discount_percent || '0');
       const taxAmount = parseFloat(session.metadata?.tax_amount || '0');
       const subtotal = parseFloat(session.metadata?.subtotal || '0');
       const total = parseFloat(session.metadata?.total || '0');
       const discountCode = session.metadata?.discount_code || '';
+      const courseEmail = session.customer_details?.email || session.metadata?.customer_email || customerInfo.email;
+
+      const purchaseData: any = {
+        stripe_session_id: session.id,
+        stripe_payment_intent_id: session.payment_intent as string,
+        amount: total,
+        discount_code: discountCode,
+        discount_amount: (subtotal * discountPercent) / 100,
+        tax_amount: taxAmount,
+        status: 'completed',
+        metadata: {
+          customer_email: courseEmail,
+          customer_info: customerInfo,
+          items,
+          stripe_session: session,
+        },
+      };
+
+      // Only add user_id if user is authenticated
+      if (user) {
+        purchaseData.user_id = user.id;
+      }
 
       const { data: insertedPurchase, error: insertError } = await supabase
         .from('purchases')
-        .upsert({
-          user_id: user.id,
-          stripe_session_id: session.id,
-          stripe_payment_intent_id: session.payment_intent as string,
-          amount: total,
-          discount_code: discountCode,
-          discount_amount: (subtotal * discountPercent) / 100,
-          tax_amount: taxAmount,
-          status: 'completed',
-          metadata: {
-            customer_info: customerInfo,
-            items,
-            stripe_session: session,
-          },
-        })
+        .upsert(purchaseData)
         .select()
         .single();
 
@@ -174,13 +217,75 @@ export async function GET(request: NextRequest) {
 
       purchase = insertedPurchase;
 
-      const grantResults = await grantAccessForPurchase(
-        supabase,
-        user.id,
-        purchase.id,
-        items,
-      );
-      console.log('verify-purchase granted access for fallback purchase:', grantResults);
+      // Only grant access if user is authenticated
+      if (user) {
+        const grantResults = await grantAccessForPurchase(
+          supabase,
+          user.id,
+          purchase.id,
+          items,
+        );
+        console.log('verify-purchase granted access for fallback purchase:', grantResults);
+      }
+    } else if (user) {
+      // Purchase row exists. Enforce ownership and allow guest-purchase claim by email.
+      if (purchase.user_id && purchase.user_id !== user.id) {
+        return NextResponse.json(
+          { error: "Purchase not found" },
+          { status: 404 }
+        );
+      }
+
+      if (!purchase.user_id) {
+        const purchaseEmail =
+          purchase.metadata?.customer_email ||
+          purchase.metadata?.customer_info?.email ||
+          null;
+        const userEmail = user.email || null;
+        const emailMatches =
+          !!purchaseEmail &&
+          !!userEmail &&
+          purchaseEmail.toLowerCase() === userEmail.toLowerCase();
+
+        if (!emailMatches) {
+          return NextResponse.json(
+            { error: "Purchase not found" },
+            { status: 404 }
+          );
+        }
+
+        const { data: claimedPurchase, error: claimError } = await supabase
+          .from('purchases')
+          .update({ user_id: user.id })
+          .eq('id', purchase.id)
+          .is('user_id', null)
+          .select(`
+            id,
+            amount,
+            status,
+            created_at,
+            user_id,
+            metadata,
+            user_products (
+              product_id,
+              products (
+                name,
+                type
+              )
+            )
+          `)
+          .single();
+
+        if (claimError || !claimedPurchase) {
+          console.error('Failed to claim guest purchase for user:', claimError);
+          return NextResponse.json(
+            { error: "Purchase not found" },
+            { status: 404 }
+          );
+        }
+
+        purchase = claimedPurchase;
+      }
     }
 
     if (purchase.status !== 'completed') {
@@ -195,13 +300,16 @@ export async function GET(request: NextRequest) {
         ? purchase.metadata.items
         : JSON.parse(purchase.metadata.items || '[]');
 
-      const grantResults = await grantAccessForPurchase(
-        supabase,
-        user.id,
-        purchase.id,
-        items,
-      );
-      console.log('verify-purchase granted access for existing purchase:', grantResults);
+      // Only grant access if user is authenticated
+      if (user) {
+        const grantResults = await grantAccessForPurchase(
+          supabase,
+          user.id,
+          purchase.id,
+          items,
+        );
+        console.log('verify-purchase granted access for existing purchase:', grantResults);
+      }
     }
 
     return NextResponse.json({

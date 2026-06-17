@@ -98,17 +98,8 @@ export default function useBuyNow() {
     console.log("buyNow called with item:", item);
     console.log("Current session:", session?.access_token ? "Has token" : "No token");
     
-    if (!session?.access_token) {
-      // User not authenticated: store the item and open auth modal
-      console.log("Not authenticated, saving pending item and opening auth modal");
-      setPendingItem(item);
-      toast.show("Please log in or sign up to continue to purchase.");
-      openAuthModal();
-      return;
-    }
-
-    // User is authenticated: add to cart and go to checkout
-    console.log("Already authenticated, adding to cart directly");
+    // Allow both authenticated and unauthenticated users to proceed to checkout
+    console.log("Adding to cart and proceeding to checkout");
     setLoading(true);
     try {
       addItem(item);

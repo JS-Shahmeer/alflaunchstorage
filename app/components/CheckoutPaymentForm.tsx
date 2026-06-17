@@ -29,12 +29,6 @@ export default function CheckoutPaymentForm({
     setLoading(true);
     setError(null);
 
-    if (!session?.access_token) {
-      setError('Authentication required. Please log in again and retry.');
-      setLoading(false);
-      return;
-    }
-
     if (!items || items.length === 0) {
       setError('Your cart is empty. Please add a program before proceeding to payment.');
       setLoading(false);

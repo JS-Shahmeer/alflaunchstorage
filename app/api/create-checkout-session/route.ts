@@ -30,20 +30,13 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization') || '';
     const accessToken = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
+    // Get user if authenticated, but allow guest checkout
+    let userId: string | null = null;
+    if (accessToken) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+      if (!authError && user) {
+        userId = user.id;
+      }
     }
 
     const {
@@ -103,30 +96,36 @@ export async function POST(request: NextRequest) {
       coupon: await createOrGetCoupon(discountPercent),
     }] : [];
 
-    // Create checkout session
+    // Create checkout session with optional user_id (for guest checkout support)
+    const metadata: any = {
+      discount_code: discountCode || '',
+      discount_percent: discountPercent.toString(),
+      tax_amount: taxAmount.toString(),
+      subtotal: subtotal.toString(),
+      total: total.toString(),
+      customer_info: JSON.stringify(customerInfo),
+      customer_first_name: customerInfo.firstName || '',
+      customer_last_name: customerInfo.lastName || '',
+      items: JSON.stringify(items.map((item: any) => ({
+        product_slug: item.id || null,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity || 1,
+      }))),
+    };
+
+    // Add user_id if authenticated
+    if (userId) {
+      metadata.user_id = userId;
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       discounts,
       mode: 'payment',
       customer_email: customerEmail,
-      metadata: {
-        user_id: user.id,
-        discount_code: discountCode || '',
-        discount_percent: discountPercent.toString(),
-        tax_amount: taxAmount.toString(),
-        subtotal: subtotal.toString(),
-        total: total.toString(),
-        customer_info: JSON.stringify(customerInfo),
-        customer_first_name: customerInfo.firstName || '',
-        customer_last_name: customerInfo.lastName || '',
-        items: JSON.stringify(items.map((item: any) => ({
-          product_slug: item.id || null,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity || 1,
-        }))),
-      },
+      metadata,
       success_url: successUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/checkout`,
       allow_promotion_codes: true,
