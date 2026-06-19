@@ -65,6 +65,14 @@ export default function GetStartedComponentThree({
     "Licensing Checklist": "Step-by-step checklist covering every requirement for state approval.",
   };
 
+  // Individual product slugs for database resolution
+  const individualProductSlugs: Record<string, string> = {
+    "Market Research Report": "market-research-report",
+    "Policy & Procedure Manual": "policy-procedure-manual",
+    "Pro Forma P&L Template": "pro-forma-pl-template",
+    "Licensing Checklist": "licensing-checklist",
+  };
+
   const stateResources = React.useMemo(() => {
     return individualBundles.flatMap((bundle) => {
       // Only show files from complete bundles for this program type
@@ -172,7 +180,7 @@ export default function GetStartedComponentThree({
                       <span className="text-gray-600 text-base">Loading bundle...</span>
                     </>
                   ) : (
-                    completeBundle?.name || `Complete Licensing Bundle`
+                    `${stateNames[selectedState]} ${selectedType} Bundle`
                   )}
                 </h3>
                 <p className="text-[#417a5a] mb-3 md:mb-4 text-sm md:text-base">Everything you need to launch your care business with confidence</p>
@@ -223,6 +231,21 @@ export default function GetStartedComponentThree({
                       // Find the full bundle to get complete metadata
                       const fullBundle = individualBundles.find(b => b.id === resource.bundleId);
                       
+                      // Create metadata with ONLY the purchased item, not all files
+                      const individualMetadata = {
+                        ...fullBundle?.metadata,
+                        files: [
+                          {
+                            label: resource.label,
+                            name: resource.name,
+                            type: resource.type,
+                            size: resource.size,
+                            path: resource.path,
+                            url: resource.url,
+                          }
+                        ],
+                      };
+                      
                       await buyNow({
                         id: itemId,
                         name: resource.label,
@@ -230,10 +253,13 @@ export default function GetStartedComponentThree({
                         type: selectedType,
                         state: selectedState,
                         quantity: 1,
-                        // Add database connection fields
+                        // Link to the bundle product
                         product_id: resource.bundleId,
-                        product_slug: fullBundle?.slug || fullBundle?.id,
-                        metadata: fullBundle?.metadata || {},
+                        product_slug: fullBundle?.product_slug,
+                        // Store which specific item is being purchased
+                        purchased_item: resource.label,
+                        purchased_item_price: itemPrice,
+                        metadata: individualMetadata,
                         bundle_id: resource.bundleId,
                       });
                     };
@@ -278,7 +304,7 @@ export default function GetStartedComponentThree({
         state={stateNames[selectedState]}
         stateAbbr={selectedState}
         program={selectedType}
-        bundleTitle={completeBundle?.name || `Complete Licensing Bundle - ${selectedType}`}
+        bundleTitle={`${stateNames[selectedState]} ${selectedType} Bundle`}
         productSlug={completeBundle?.product_slug}
         price={completeBundle?.price}
         oldPrice={completeBundle?.metadata?.oldPrice}
@@ -299,7 +325,9 @@ export default function GetStartedComponentThree({
         onBack={() => router.push(`/get-started?state=${selectedState}`)}
         onContinue={() => {
           // Allow checkout if bundle is selected OR bundle is in cart OR any individual bundle is in cart
-          const bundleInCart = cartItems.some(item => item.name === 'Complete Licensing Bundle');
+          const bundleInCart = cartItems.some(
+            item => item.product_slug === completeBundle?.product_slug || item.name === `${stateNames[selectedState]} ${selectedType} Bundle`
+          );
           const individualBundleInCart = cartItems.some(item => selectedProducts.includes(item.id));
           if (selectedBundle || bundleInCart || individualBundleInCart) {
             const params = new URLSearchParams({
@@ -347,7 +375,7 @@ export default function GetStartedComponentThree({
         currentProduct={detailsProduct}
         state={stateNames[selectedState]}
         stateAbbr={selectedState}
-        bundleTitle={completeBundle?.name || `Complete Licensing Bundle - ${selectedType}`}
+        bundleTitle={`${stateNames[selectedState]} ${selectedType} Bundle`}
       />
     )}
     </>

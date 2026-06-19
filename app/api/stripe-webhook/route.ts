@@ -100,6 +100,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
     const courseEmail = session.customer_details?.email || session.metadata?.customer_email || customerInfo.email;
 
     console.log(`📦 Processing checkout for ${isCourseEnrollment ? 'course' : `user ${userId}`} with ${items.length} item(s):`, items);
+    
+    // DEBUG: Log each item's purchased_item field
+    console.log('🔍 DEBUG - Items from Stripe metadata:');
+    items.forEach((item: any, idx: number) => {
+      console.log(`  [${idx}] purchased_item: "${item.purchased_item}" | type: ${typeof item.purchased_item}`);
+    });
 
     const enrichedItems: any[] = [];
 
@@ -136,7 +142,25 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
         skool_course_id: product?.skool_course_id || null,
         ghl_tag: product?.ghl_tag || null,
         product_id: product?.id || null,
+        // Track individually purchased items - from Stripe metadata items
+        purchased_item: item.purchased_item || null,
+        purchased_item_price: item.purchased_item_price || null,
       };
+
+      console.log(`🏷️ Enriched item ${item.name}:`, {
+        purchased_item_from_item: item.purchased_item,
+        purchased_item_in_enriched: enrichedItem.purchased_item,
+        product_id: enrichedItem.product_id,
+      });
+
+      if (item.purchased_item) {
+        console.log(`📍 Individual item purchase detected:`, {
+          name: enrichedItem.name,
+          purchased_item: enrichedItem.purchased_item,
+          purchased_item_price: enrichedItem.purchased_item_price,
+          product_id: enrichedItem.product_id,
+        });
+      }
 
       if (!enrichedItem.product_id) {
         console.warn(`⚠️ Could not resolve product_id for item:`, { item, watchFields, product });
@@ -146,6 +170,29 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
 
       enrichedItems.push(enrichedItem);
     }
+
+    // Collect purchased_items mapping from enriched items
+    // This maps product_id to array of purchased item names
+    const purchasedItemsByProductId: Record<string, string[]> = {};
+    
+    console.log('🔍 Building purchased_items_map from enrichedItems:');
+    for (const item of enrichedItems) {
+      console.log(`  Item: ${item.name}`, {
+        product_id: item.product_id,
+        purchased_item: item.purchased_item,
+        has_purchased_item: !!item.purchased_item,
+      });
+      
+      if (item.product_id && item.purchased_item) {
+        if (!purchasedItemsByProductId[item.product_id]) {
+          purchasedItemsByProductId[item.product_id] = [];
+        }
+        purchasedItemsByProductId[item.product_id].push(item.purchased_item);
+        console.log(`    ✓ Added to map for product ${item.product_id}`);
+      }
+    }
+    
+    console.log('📦 Final Purchased items mapping by product:', purchasedItemsByProductId);
 
     // Update or create purchase record
     const purchaseData: any = {
@@ -181,37 +228,60 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       return;
     }
 
+    // ✅ SAVE PURCHASED_ITEMS DIRECTLY WITHOUT WAITING TO READ FROM DB
     // Grant product access only if user is logged in
     if (userId) {
-      const grantErrors: any[] = [];
-      for (const enrichedItem of enrichedItems) {
-        if (!enrichedItem.product_id) {
-          console.warn(`No product_id for item: ${enrichedItem.name}`);
-          continue;
+      console.log('💾 DIRECT SAVE: Using purchasedItemsByProductId built from enrichedItems');
+      console.log('💾 Map contents:', purchasedItemsByProductId);
+      
+      // Group items by product_id to avoid UNIQUE constraint violations
+      const itemsByProductId = enrichedItems.reduce((acc: Record<string, any[]>, item: any) => {
+        if (item.product_id) {
+          if (!acc[item.product_id]) {
+            acc[item.product_id] = [];
+          }
+          acc[item.product_id].push(item);
         }
+        return acc;
+      }, {});
 
+      const grantErrors: any[] = [];
+      
+      for (const [productId, items] of Object.entries(itemsByProductId)) {
+        // Use the map we just built - DON'T read from purchase.metadata
+        const purchasedItems = purchasedItemsByProductId[productId] || [];
+        
+        console.log(`💾 DIRECT SAVE for product ${productId}:`, {
+          purchasedItems,
+          fromMap: purchasedItemsByProductId[productId],
+          itemCount: items.length,
+        });
+        
+        // Create or update user_products entry with purchased_items
         const { error: grantError } = await supabase
           .from('user_products')
           .upsert({
             user_id: userId,
-            product_id: enrichedItem.product_id,
+            product_id: productId,
             purchase_id: purchase.id,
             granted_at: new Date().toISOString(),
             is_active: true,
+            purchased_items: purchasedItems.length > 0 ? purchasedItems : null,
           });
 
         if (grantError) {
-          console.error(`Failed to grant access to product ${enrichedItem.product_id}:`, grantError);
-          grantErrors.push({ product_id: enrichedItem.product_id, error: grantError });
+          console.error(`Failed to grant access to product ${productId}:`, grantError);
+          grantErrors.push({ product_id: productId, error: grantError, items: items });
         } else {
-          console.log(`✓ Granted access to product ${enrichedItem.product_id} (${enrichedItem.name})`);
+          const purchaseType = purchasedItems.length > 0 ? 'individual_items' : 'complete_bundle';
+          console.log(`✓ Granted ${purchaseType} access to product ${productId}`);
         }
       }
 
       if (grantErrors.length > 0) {
         console.error(`⚠️ WARNING: Purchase ${purchase.id} completed but ${grantErrors.length} product(s) failed to grant access:`, grantErrors);
       } else {
-        console.log(`✓ All ${enrichedItems.length} product(s) access granted for purchase ${purchase.id}`);
+        console.log(`✓ All ${Object.keys(itemsByProductId).length} product(s) access granted for purchase ${purchase.id}`);
       }
 
       // Update profile with customer info if provided

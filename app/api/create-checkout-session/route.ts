@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
       customerInfo
     } = await request.json();
 
+    console.log('📋 Checkout session request received with items:', JSON.stringify(items, null, 2));
+
     if (!items || items.length === 0) {
       return NextResponse.json(
         { error: "No items provided" },
@@ -62,6 +64,21 @@ export async function POST(request: NextRequest) {
     const taxRate = 0.08; // 8% tax
     const taxAmount = (subtotal - discountAmount) * taxRate;
     const total = subtotal - discountAmount + taxAmount;
+
+    // Debug: Show what will be stored in metadata
+    const metadataItems = items.map((item: any) => ({
+      product_slug: item.product_slug || item.id || null,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity || 1,
+      product_id: item.product_id || null,
+      bundle_id: item.bundle_id || null,
+      purchased_item: item.purchased_item || null,
+      purchased_item_price: item.purchased_item_price || null,
+      type: item.type || null,
+      state: item.state || null,
+    }));
+    console.log('💾 Items being stored in Stripe metadata:', JSON.stringify(metadataItems, null, 2));
 
     // Create line items for Stripe
     const lineItems = items.map((item: any) => ({
@@ -107,10 +124,14 @@ export async function POST(request: NextRequest) {
       customer_first_name: customerInfo.firstName || '',
       customer_last_name: customerInfo.lastName || '',
       items: JSON.stringify(items.map((item: any) => ({
-        product_slug: item.id || null,
+        product_slug: item.product_slug || item.id || null,
         name: item.name,
         price: item.price,
         quantity: item.quantity || 1,
+        product_id: item.product_id || null,
+        bundle_id: item.bundle_id || null,
+        purchased_item: item.purchased_item || null,
+        purchased_item_price: item.purchased_item_price || null,
       }))),
     };
 

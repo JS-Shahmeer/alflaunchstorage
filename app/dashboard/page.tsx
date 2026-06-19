@@ -47,6 +47,7 @@ export default function DashboardPage() {
             purchase_id,
             granted_at,
             is_active,
+            purchased_items,
             products (
               id,
               name,
@@ -72,7 +73,7 @@ export default function DashboardPage() {
             amount,
             status,
             created_at,
-            items:metadata->items
+            metadata
           `)
           .eq('user_id', user.id)
           .eq('status', 'completed')
@@ -82,8 +83,23 @@ export default function DashboardPage() {
           throw purchasesError;
         }
 
+        // Parse purchases to extract items from metadata
+        const parsedPurchases = (purchasesData || []).map((p: any) => {
+          let items = [];
+          if (p.metadata?.items) {
+            items = Array.isArray(p.metadata.items) ? p.metadata.items : [];
+          }
+          return {
+            id: p.id,
+            amount: p.amount,
+            status: p.status,
+            created_at: p.created_at,
+            items: items,
+          };
+        });
+
         setUserProducts(userProductsData || []);
-        setPurchases(purchasesData || []);
+        setPurchases(parsedPurchases);
       } catch (fetchError: any) {
         console.error('Dashboard data error:', fetchError);
         setError(fetchError?.message || 'Unable to load dashboard data.');

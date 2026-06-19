@@ -95,7 +95,12 @@ export default function CompareModal({
     currentProduct.type ||
     "Selected Resource";
   const samplePrice = currentProduct.price ?? 397;
-  const displayBundleTitle = bundleTitle || completeBundle?.name || `Complete State Licensing Bundle`;
+  const currentProgram =
+    currentProduct.metadata?.program ||
+    (currentProduct as any).bundleProgram ||
+    currentProduct.program ||
+    "";
+  const displayBundleTitle = bundleTitle || completeBundle?.name || `${state} ${currentProgram} Bundle`;
   const bundlePrice = completeBundle?.price;
   const oldPrice = completeBundle?.metadata?.oldPrice;
   const saveAmount = oldPrice && bundlePrice ? oldPrice - bundlePrice : 0;
@@ -243,7 +248,7 @@ export default function CompareModal({
                         <span className="text-base text-gray-600">Loading...</span>
                       </div>
                     ) : (
-                      displayBundleTitle || 'Complete State Licensing Bundle'
+                      displayBundleTitle || `${state} ${currentProgram} Bundle`
                     )}
                   </span>
                   {loadingBundle ? (
@@ -380,13 +385,13 @@ export default function CompareModal({
           <p className="text-xs text-gray-500 text-center">
             {saveAmount > 0 && oldPrice ? `Save ${Math.round((saveAmount / oldPrice) * 100)}%` : ''} - This offer expires when the timer hits zero
           </p>
-          <button
+          {/* <button
             onClick={handleAddSampleOnly}
             aria-label="Keep sample"
             className="text-gray-400 hover:text-gray-700 cursor-pointer text-xs mx-auto block mt-2"
           >
             No thanks, I’ll just get {sampleName} for ${samplePrice}
-          </button>
+          </button> */}
           <div className="flex justify-center gap-4 mt-4 text-xs text-gray-600">
             <span>
               <Check size={12} className="text-green-600 mr-1 inline" /> Instant

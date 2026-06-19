@@ -92,7 +92,7 @@ export default function BundleModal({
   }, [open]);
 
   // Use fetched data or fallback to props (only after loading completes)
-  const bundleTitle = propBundleTitle || completeBundle?.name || `Complete Licensing Bundle - ${program}`;
+  const bundleTitle = propBundleTitle || completeBundle?.name || `${state} ${program} Bundle`;
   const price = completeBundle?.price ?? (loadingBundle ? undefined : propPrice);
   const oldPrice = completeBundle?.metadata?.oldPrice ?? (loadingBundle ? undefined : propOldPrice);
   const saveAmount = oldPrice && price ? oldPrice - price : 0;
@@ -194,7 +194,7 @@ export default function BundleModal({
                       <span className="text-base text-gray-600">Loading...</span>
                     </div>
                   ) : (
-                    bundleTitle || 'Complete State Licensing Bundle'
+                    bundleTitle || `${state} ${program} Bundle`
                   )}
                 </span>
                 {loadingBundle ? (

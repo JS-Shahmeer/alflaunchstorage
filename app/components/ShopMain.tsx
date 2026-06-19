@@ -478,7 +478,7 @@ export default function ShopMain() {
             state={modalProduct.metadata?.state || ""}
             stateAbbr={states.find(s => s.name === (modalProduct.metadata?.state || ""))?.code || ""}
             program={modalProduct.metadata?.program || ""}
-            bundleTitle={modalProduct.name || `Complete Licensing Bundle - ${modalProduct.metadata?.program || ""}`}
+            bundleTitle={`${modalProduct.metadata?.state || ""} ${modalProduct.metadata?.program || ""} Bundle`}
             productSlug={modalProduct.product_slug}
             price={modalProduct.price}
             oldPrice={modalProduct.metadata?.oldPrice}
@@ -527,7 +527,7 @@ export default function ShopMain() {
             currentProduct={compareProduct}
             state={compareProduct.metadata?.state || ""}
             stateAbbr={states.find((s) => s.name === compareProduct.metadata?.state)?.code || ""}
-            bundleTitle={`Complete Licensing Bundle - ${compareProduct.metadata?.program || ""}`}
+            bundleTitle={`${compareProduct.metadata?.state || ""} ${compareProduct.metadata?.program || ""} Bundle`}
           />
         )}
       </div>

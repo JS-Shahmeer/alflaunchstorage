@@ -1,31 +1,55 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../components/AuthContext';
 import { useAuthModal } from '../components/AuthModalContext';
 import AuthModal from '../components/AuthModal';
+import { useCart } from '../components/cart-context';
 
 export default function CheckoutSuccessClient() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { user, session, loading: authLoading } = useAuth();
   const { authModalOpen, openAuthModal, closeAuthModal } = useAuthModal();
+  const { clearCart } = useCart();
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Verifying your purchase...');
   const [error, setError] = useState<string | null>(null);
   const [purchaseData, setPurchaseData] = useState<any>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  const sessionId = searchParams.get('session_id');
+  useEffect(() => {
+    // Try to get session_id from searchParams first
+    const paramSessionId = searchParams.get('session_id');
+    if (paramSessionId) {
+      setSessionId(paramSessionId);
+      return;
+    }
+
+    // Fallback: parse from window.location if searchParams is empty
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlSessionId = params.get('session_id');
+      if (urlSessionId) {
+        setSessionId(urlSessionId);
+      }
+    }
+  }, [searchParams]);
+
   const maxRetries = 3;
   const retryDelayMs = 2000;
 
   useEffect(() => {
     if (authLoading) {
+      return;
+    }
+
+    // Wait for sessionId to be extracted from URL
+    if (sessionId === null) {
       return;
     }
 
@@ -56,6 +80,8 @@ export default function CheckoutSuccessClient() {
         const data = await response.json();
 
         if (response.ok) {
+          // Purchase is confirmed, so clear any remaining cart state.
+          clearCart();
           setPurchaseData(data);
           // Show auth prompt if user is not authenticated (guest checkout)
           if (!user) {

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Loader, FileText, Users, BookOpen, Lock, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/app/components/AuthContext';
+import { useCart } from '@/app/components/cart-context';
 
 const SKOOL_INVITE_LINK = "https://www.skool.com/carelicensingsolutions?invite=c486b98509704b52a9a0ba10e535c2ba";
 
@@ -12,6 +13,7 @@ export default function CourseSuccessClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, session, loading: authLoading } = useAuth();
+  const { clearCart } = useCart();
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Verifying your enrollment...');
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,8 @@ export default function CourseSuccessClient() {
         const data = await response.json();
 
         if (response.ok) {
+          // Enrollment is confirmed, so clear cart after a successful checkout.
+          clearCart();
           setEnrollmentData(data);
           setLoading(false);
           return;

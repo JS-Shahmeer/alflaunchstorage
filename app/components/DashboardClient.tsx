@@ -62,6 +62,11 @@ export default function DashboardClient({
         return;
       }
 
+      console.log('🔍 DashboardClient - Fetching bundle files...');
+      console.log('  activeBundles count:', activeBundles.length);
+      console.log('  purchases count:', purchases.length);
+      console.log('  purchases data:', purchases);
+
       const bundlesNeedingFiles = activeBundles.filter((bundle) => {
         const metadataFiles = bundle.products?.metadata?.files;
         return (
@@ -78,7 +83,7 @@ export default function DashboardClient({
       const bundleFiles = await Promise.all(
         bundlesNeedingFiles.map(async (bundle) => {
           if (!client) {
-            return { id: bundle.id, files: [] };
+            return { id: bundle.id, files: [], purchasedItems: [] };
           }
 
           const { data, error } = await client.storage
@@ -92,8 +97,36 @@ export default function DashboardClient({
             });
 
           if (error || !data) {
-            return { id: bundle.id, files: [] };
+            return { id: bundle.id, files: [], purchasedItems: [] };
           }
+
+          // Find purchases for this bundle to determine which items were purchased
+          const bundlePurchases = purchases.filter((p: any) => {
+            const items = Array.isArray(p.items) ? p.items : [];
+            return items.some((item: any) => item.product_id === bundle.product_id);
+          });
+
+          // Collect all individually purchased item names for this bundle
+          const purchasedItemNames = new Set<string>();
+          let hasFullBundlePurchase = false;
+          
+          bundlePurchases.forEach((p: any) => {
+            const items = Array.isArray(p.items) ? p.items : [];
+            items.forEach((item: any) => {
+              if (item.product_id === bundle.product_id) {
+                // If purchased_item is set, it's an individual item
+                if (item.purchased_item) {
+                  purchasedItemNames.add(item.purchased_item);
+                } else {
+                  // If no purchased_item, it's a full bundle purchase
+                  hasFullBundlePurchase = true;
+                }
+              }
+            });
+          });
+
+          // If full bundle was purchased, don't filter (show all files)
+          const itemsToShow = hasFullBundlePurchase ? null : (purchasedItemNames.size > 0 ? purchasedItemNames : null);
 
           const files = data
             .filter((file: any) => file?.name)
@@ -122,7 +155,7 @@ export default function DashboardClient({
               };
             });
 
-          return { id: bundle.id, files };
+          return { id: bundle.id, files, purchasedItems: itemsToShow ? Array.from(itemsToShow) : null };
         }),
       );
 
@@ -148,12 +181,15 @@ export default function DashboardClient({
       activeBundles.map((bundle) => {
         const metadataFiles = bundle.products?.metadata?.files;
         const storedFiles = bundleFilesMap[bundle.id] || [];
+        const allFiles =
+          Array.isArray(metadataFiles) && metadataFiles.length > 0
+            ? metadataFiles
+            : storedFiles;
+
+        // Don't filter here - filtering happens in the render section based on purchased_items
         return {
           ...bundle,
-          bundleFiles:
-            Array.isArray(metadataFiles) && metadataFiles.length > 0
-              ? metadataFiles
-              : storedFiles,
+          bundleFiles: allFiles,
         };
       }),
     [activeBundles, bundleFilesMap],
@@ -356,10 +392,26 @@ export default function DashboardClient({
                 <div className="mt-6 grid gap-5">
                   {activeBundlesWithFiles.map((userProduct) => {
                     const files = userProduct.bundleFiles || [];
-                    const bundleLabel =
-                      userProduct.products?.product_label ||
-                      userProduct.products?.metadata?.productLabel ||
-                      userProduct.products?.type;
+                    // Use purchased_items directly from user_products table
+                    const purchasedItems = userProduct.purchased_items || [];
+                    
+                    // Determine if this is an individual purchase or full bundle
+                    const isIndividualPurchase = purchasedItems && purchasedItems.length > 0;
+                    const purchaseTypeLabel = isIndividualPurchase 
+                      ? "Individual File"
+                      : (userProduct.products?.product_label ||
+                        userProduct.products?.metadata?.productLabel ||
+                        userProduct.products?.type);
+                    
+                    // If individual purchase, show the item name(s)
+                    let displayTitle = userProduct.products.name;
+                    if (isIndividualPurchase && purchasedItems && purchasedItems.length > 0) {
+                      if (purchasedItems.length === 1) {
+                        displayTitle = purchasedItems[0];
+                      } else {
+                        displayTitle = `${purchasedItems.length} Selected Items`;
+                      }
+                    }
 
                     return (
                       <div
@@ -370,10 +422,10 @@ export default function DashboardClient({
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <span className="inline-flex rounded-md bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
-                                {bundleLabel}
+                                {purchaseTypeLabel}
                               </span>
                               <h3 className="mt-4 text-2xl font-semibold">
-                                {userProduct.products.name}
+                                {displayTitle}
                               </h3>
                               <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-200 capitalize">
                                 {userProduct.products.description}
@@ -408,10 +460,10 @@ export default function DashboardClient({
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    Bundle downloads
+                                    {isIndividualPurchase ? "Individual File" : "Bundle"} Downloads
                                   </p>
                                   <p className="mt-1 text-sm text-slate-600">
-                                    Download every file included in this
+                                    Download {isIndividualPurchase ? "the file" : "every file"} included in this
                                     purchase.
                                   </p>
                                 </div>
@@ -430,30 +482,65 @@ export default function DashboardClient({
                                     : null;
                                   const fileType = file.type || "Download";
 
-                                  return (
-                                    <a
-                                      key={`${userProduct.id}-${index}`}
-                                      href={file.url || file.path || "#"}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      download={Boolean(file.url)}
-                                      className="group flex flex-col gap-3 rounded-md border border-slate-200 bg-white px-4 py-4 transition hover:border-emerald-300 hover:bg-emerald-50 sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                      <div className="min-w-0">
-                                        <p className="font-semibold text-slate-950 capitalize">
-                                          {fileLabel}
-                                        </p>
-                                        {/* <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                                          <span>{fileSize || fileType}</span>
-                                          {fileSize && file.type && <span>{fileType}</span>}
-                                        </div> */}
+                                  // Check if this file was purchased
+                                  // If no purchased_items (complete bundle), all files are purchased
+                                  // If purchased_items exists (individual purchase), check if this file is in the list
+                                  const isPurchased = !purchasedItems || purchasedItems.length === 0
+                                    ? true // Complete bundle - all files purchased
+                                    : purchasedItems.some((item: string) => {
+                                        const itemLabel = item.toLowerCase().trim();
+                                        const normalizedLabel = fileLabel.toLowerCase().trim();
+                                        return normalizedLabel === itemLabel || 
+                                               normalizedLabel.includes(itemLabel.replace(/\s+/g, "")) ||
+                                               itemLabel.includes(normalizedLabel.replace(/\s+/g, ""));
+                                      });
+
+                                  if (isPurchased) {
+                                    // Show download button for purchased files
+                                    return (
+                                      <a
+                                        key={`${userProduct.id}-${index}`}
+                                        href={file.url || file.path || "#"}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        download={Boolean(file.url)}
+                                        className="group flex flex-col gap-3 rounded-md border border-emerald-200 bg-white px-4 py-4 transition hover:border-emerald-400 hover:bg-emerald-50 sm:flex-row sm:items-center sm:justify-between"
+                                      >
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-slate-950 capitalize">
+                                            {fileLabel}
+                                          </p>
+                                          <p className="text-xs text-emerald-600 font-medium mt-1">✓ Purchased</p>
+                                        </div>
+                                        <span className="inline-flex items-center gap-2 rounded-md bg-emerald-900 px-3 py-2 text-xs font-semibold text-white transition group-hover:bg-emerald-800">
+                                          <DownloadCloud className="h-4 w-4" />
+                                          Download
+                                        </span>
+                                      </a>
+                                    );
+                                  } else {
+                                    // Show disabled state for unpurchased files
+                                    return (
+                                      <div
+                                        key={`${userProduct.id}-${index}`}
+                                        className="flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-4 opacity-70 sm:flex-row sm:items-center sm:justify-between"
+                                      >
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-slate-600 capitalize">
+                                            {fileLabel}
+                                          </p>
+                                          <p className="text-xs text-red-500 font-medium mt-1">✗ You didn't purchase this file</p>
+                                        </div>
+                                        <button
+                                          disabled
+                                          className="inline-flex items-center gap-2 rounded-md bg-slate-400 px-3 py-2 text-xs font-semibold text-white cursor-not-allowed opacity-60"
+                                        >
+                                          <DownloadCloud className="h-4 w-4" />
+                                          Locked
+                                        </button>
                                       </div>
-                                      <span className="inline-flex items-center gap-2 rounded-md bg-emerald-900 px-3 py-2 text-xs font-semibold text-white transition group-hover:bg-emerald-800">
-                                        <DownloadCloud className="h-4 w-4" />
-                                        Download
-                                      </span>
-                                    </a>
-                                  );
+                                    );
+                                  }
                                 })}
                               </div>
                             </div>

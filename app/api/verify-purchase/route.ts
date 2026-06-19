@@ -27,15 +27,44 @@ async function resolveProductForItem(supabase: any, item: any) {
   return data;
 }
 
-async function grantAccessForPurchase(supabase: any, userId: string, purchaseId: string, items: any[]) {
+async function grantAccessForPurchase(
+  supabase: any,
+  userId: string,
+  purchaseId: string,
+  items: any[],
+  purchasedItemsMap?: Record<string, string[]>
+) {
   const results: any[] = [];
 
-  for (const item of items) {
-    const product = await resolveProductForItem(supabase, item);
+  // Group items by product_id to avoid duplicate entries
+  const itemsByProductId = items.reduce((acc: Record<string, any[]>, item: any) => {
+    if (item.product_id) {
+      if (!acc[item.product_id]) {
+        acc[item.product_id] = [];
+      }
+      acc[item.product_id].push(item);
+    }
+    return acc;
+  }, {});
+
+  for (const [productId, productItems] of Object.entries(itemsByProductId)) {
+    const product = await resolveProductForItem(supabase, productItems[0]);
     if (!product?.id) {
-      results.push({ item, success: false, reason: 'Unable to resolve product' });
+      results.push({ product_id: productId, items: productItems, success: false, reason: 'Unable to resolve product' });
       continue;
     }
+
+    // Get purchased items from map if provided, otherwise try to extract from items
+    const purchasedItems = purchasedItemsMap && purchasedItemsMap[product.id]
+      ? purchasedItemsMap[product.id]
+      : productItems
+          .filter((item: any) => item.purchased_item)
+          .map((item: any) => item.purchased_item);
+
+    console.log(`💾 Storing purchased_items for product ${product.id}:`, {
+      purchasedItems,
+      itemCount: productItems.length,
+    });
 
     const { error } = await supabase.from('user_products').upsert({
       user_id: userId,
@@ -43,12 +72,14 @@ async function grantAccessForPurchase(supabase: any, userId: string, purchaseId:
       purchase_id: purchaseId,
       granted_at: new Date().toISOString(),
       is_active: true,
+      purchased_items: purchasedItems.length > 0 ? purchasedItems : null,
     });
 
     if (error) {
-      results.push({ item, product_id: product.id, success: false, error });
+      results.push({ product_id: product.id, items: productItems, success: false, error });
     } else {
-      results.push({ item, product_id: product.id, success: true });
+      const purchaseType = purchasedItems.length > 0 ? 'individual_items' : 'complete_bundle';
+      results.push({ product_id: product.id, items: productItems, success: true, purchase_type: purchaseType });
     }
   }
 
@@ -115,6 +146,9 @@ export async function GET(request: NextRequest) {
       { data: any | null; error: any } = await query
       .single();
 
+    // Initialize purchasedItemsMap early, to be available in all paths
+    let purchasedItemsMap: Record<string, string[]> = {};
+
     if (purchaseError || !purchase) {
       if (!stripe) {
         return NextResponse.json(
@@ -173,6 +207,19 @@ export async function GET(request: NextRequest) {
 
       const customerInfo = sessionCustomerInfo;
       const items = JSON.parse(session.metadata?.items || '[]');
+
+      // Build purchased_items map directly from items
+      for (const item of items) {
+        if (item.product_id && item.purchased_item) {
+          if (!purchasedItemsMap[item.product_id]) {
+            purchasedItemsMap[item.product_id] = [];
+          }
+          purchasedItemsMap[item.product_id].push(item.purchased_item);
+          console.log(`✓ Added purchased_item "${item.purchased_item}" for product ${item.product_id}`);
+        }
+      }
+      
+      console.log('📦 Purchased items map from items:', purchasedItemsMap);
       const discountPercent = parseFloat(session.metadata?.discount_percent || '0');
       const taxAmount = parseFloat(session.metadata?.tax_amount || '0');
       const subtotal = parseFloat(session.metadata?.subtotal || '0');
@@ -224,6 +271,7 @@ export async function GET(request: NextRequest) {
           user.id,
           purchase.id,
           items,
+          purchasedItemsMap,
         );
         console.log('verify-purchase granted access for fallback purchase:', grantResults);
       }
@@ -300,6 +348,16 @@ export async function GET(request: NextRequest) {
         ? purchase.metadata.items
         : JSON.parse(purchase.metadata.items || '[]');
 
+      // Build purchased_items map from items
+      for (const item of items) {
+        if (item.product_id && item.purchased_item) {
+          if (!purchasedItemsMap[item.product_id]) {
+            purchasedItemsMap[item.product_id] = [];
+          }
+          purchasedItemsMap[item.product_id].push(item.purchased_item);
+        }
+      }
+
       // Only grant access if user is authenticated
       if (user) {
         const grantResults = await grantAccessForPurchase(
@@ -307,6 +365,7 @@ export async function GET(request: NextRequest) {
           user.id,
           purchase.id,
           items,
+          purchasedItemsMap,
         );
         console.log('verify-purchase granted access for existing purchase:', grantResults);
       }
