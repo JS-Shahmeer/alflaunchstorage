@@ -59,7 +59,26 @@ export async function POST(request: NextRequest) {
 
     // Calculate totals
     const subtotal = items.reduce((sum: number, item: any) => sum + item.price * (item.quantity || 1), 0);
-    const discountPercent = getDiscountPercent(discountCode);
+    const normalizedDiscountCode = typeof discountCode === 'string' ? discountCode.trim().toUpperCase() : '';
+    const quickBooksCoupon = await getValidQuickBooksCoupon(
+      supabase,
+      normalizedDiscountCode,
+      customerEmail,
+      items,
+    );
+    const discountPercent = normalizedDiscountCode.startsWith('CLS-')
+      ? quickBooksCoupon
+        ? 100
+        : 0
+      : getDiscountPercent(normalizedDiscountCode);
+
+    if (normalizedDiscountCode.startsWith('CLS-') && !quickBooksCoupon) {
+      return NextResponse.json(
+        { error: "Invalid or unavailable course coupon" },
+        { status: 400 },
+      );
+    }
+
     const discountAmount = (subtotal * discountPercent) / 100;
     const taxRate = 0.08; // 8% tax
     const taxAmount = (subtotal - discountAmount) * taxRate;
@@ -115,7 +134,8 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session with optional user_id (for guest checkout support)
     const metadata: any = {
-      discount_code: discountCode || '',
+      discount_code: normalizedDiscountCode,
+      coupon_product_id: quickBooksCoupon?.product_id || '',
       discount_percent: discountPercent.toString(),
       tax_amount: taxAmount.toString(),
       subtotal: subtotal.toString(),
@@ -163,6 +183,39 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function getValidQuickBooksCoupon(
+  supabase: any,
+  code: string,
+  email: string,
+  items: any[],
+) {
+  if (!code.startsWith('CLS-') || !email || items.length !== 1) return null;
+
+  const item = items[0];
+  if (item.product_slug !== 'course-operational-success-academy') return null;
+
+  const { data: coupon, error } = await supabase
+    .from('coupons')
+    .select('id, product_id, email, status, used_count, max_uses, expires_at')
+    .eq('code', code)
+    .maybeSingle();
+
+  if (error) {
+    console.error('QuickBooks coupon checkout lookup failed:', error);
+    return null;
+  }
+
+  const isExpired = coupon?.expires_at && new Date(coupon.expires_at).getTime() <= Date.now();
+  const emailMatches = coupon?.email?.toLowerCase() === email.trim().toLowerCase();
+  const usesAvailable = coupon && coupon.used_count < coupon.max_uses;
+
+  if (!coupon || !emailMatches || coupon.status !== 'ACTIVE' || !usesAvailable || isExpired) {
+    return null;
+  }
+
+  return coupon;
 }
 
 function getDiscountPercent(code: string): number {

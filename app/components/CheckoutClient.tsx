@@ -125,7 +125,7 @@ export default function CheckoutClient() {
   }
 
   // Validate and apply discount code
-  function applyDiscountCode() {
+  async function applyDiscountCode() {
     const validCodes: { [key: string]: number } = {
       SAVE10: 10,
       SAVE15: 15,
@@ -138,7 +138,32 @@ export default function CheckoutClient() {
       return;
     }
 
-    const code = discountCode.toUpperCase();
+    const code = discountCode.trim().toUpperCase();
+
+    if (code.startsWith("CLS-")) {
+      try {
+        const response = await fetch("/api/coupons/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, email: form.email }),
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.valid) {
+          throw new Error(result.error || "Invalid coupon");
+        }
+
+        setDiscountPercent(100);
+        setDiscountApplied(true);
+        toast.show("Course coupon applied! Your total is $0.00");
+      } catch (error: any) {
+        toast.show(error.message || "Invalid coupon code");
+        setDiscountApplied(false);
+        setDiscountPercent(0);
+      }
+      return;
+    }
+
     if (validCodes[code]) {
       setDiscountPercent(validCodes[code]);
       setDiscountApplied(true);

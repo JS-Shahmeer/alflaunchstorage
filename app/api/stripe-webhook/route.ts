@@ -299,6 +299,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       }
     }
 
+    if (isCourseEnrollment && discountCode.startsWith('CLS-')) {
+      await redeemQuickBooksCoupon(supabase, discountCode, courseEmail, session.metadata?.coupon_product_id, purchase.id);
+    }
+
     const skoolCourseIds = enrichedItems
       .map((item) => item.skool_course_id)
       .filter((id) => id) as string[];
@@ -368,6 +372,56 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       })
       .eq('stripe_event_id', session.id);
   }
+}
+
+async function redeemQuickBooksCoupon(
+  supabase: any,
+  code: string,
+  email: string | undefined,
+  productId: string | undefined,
+  purchaseId: string,
+) {
+  if (!email || !productId) {
+    console.error('QuickBooks coupon redemption skipped: missing email or product ID', {
+      code,
+      purchaseId,
+    });
+    return;
+  }
+
+  const { data: coupon, error } = await supabase
+    .from('coupons')
+    .update({
+      status: 'USED',
+      used_count: 1,
+      used_at: new Date().toISOString(),
+    })
+    .eq('code', code)
+    .eq('email', email.toLowerCase())
+    .eq('product_id', productId)
+    .eq('status', 'ACTIVE')
+    .eq('used_count', 0)
+    .select('id, code, status, used_at')
+    .maybeSingle();
+
+  if (error) {
+    console.error('QuickBooks coupon redemption failed:', { error, code, purchaseId });
+    return;
+  }
+
+  if (!coupon) {
+    console.error('QuickBooks coupon was not redeemed because it is invalid or already used', {
+      code,
+      purchaseId,
+    });
+    return;
+  }
+
+  console.log('QuickBooks coupon permanently marked USED', {
+    couponId: coupon.id,
+    code,
+    purchaseId,
+  });
 }
 
 async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent, supabase: any) {
