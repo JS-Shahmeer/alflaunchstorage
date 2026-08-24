@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   createServerSupabaseClient,
   isSupabaseConfigured,
@@ -77,15 +77,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ coupon: existingCoupon, alreadyProcessed: true });
     }
 
-    const { data: course, error: courseError } = await supabase
+    const { data: existingCourse, error: courseError } = await supabase
       .from("products")
-      .select("id, product_slug, price")
+      .select("id, product_slug, price, type, is_active")
       .eq("product_slug", COURSE_SLUG)
-      .eq("type", "course")
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (courseError || !course) {
+    if (courseError) {
       console.error("Course product lookup failed:", courseError);
       return NextResponse.json(
         { error: "Eligible course product is not configured" },
@@ -93,7 +91,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let course = existingCourse;
+    if (!course) {
+      const { data: createdCourse, error: createCourseError } = await supabase
+        .from("products")
+        .insert({
+          name: "Care Licensing Solutions Operational Success Academy",
+          product_slug: COURSE_SLUG,
+          description: "Complete 11-module video training system for care business licensing and operations",
+          price: 0,
+          type: "course",
+          is_active: true,
+          metadata: {
+            course_type: "operational-success-academy",
+            enrollment_type: "course",
+          },
+        })
+        .select("id, product_slug, price, type, is_active")
+        .single();
+
+      if (createCourseError) {
+        console.error("Course product creation failed:", createCourseError);
+        return NextResponse.json(
+          { error: "Eligible course product is not configured" },
+          { status: 500 },
+        );
+      }
+
+      course = createdCourse;
+    }
+
+    if (course.type !== "course" || !course.is_active) {
+      return NextResponse.json(
+        { error: "Eligible course product is not configured" },
+        { status: 500 },
+      );
+    }
+
     const coupon = {
+      id: randomUUID(),
       code: generateCouponCode(),
       product_id: course.id,
       email,

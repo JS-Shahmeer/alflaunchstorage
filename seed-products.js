@@ -310,6 +310,19 @@ const generalProducts = [
 
 const products = [...generatedStateProducts, ...generalProducts];
 
+products.push({
+  name: 'Care Licensing Solutions Operational Success Academy',
+  product_slug: 'course-operational-success-academy',
+  description: 'Complete 11-module video training system for care business licensing and operations.',
+  price: 0.0,
+  type: 'course',
+  is_active: true,
+  metadata: {
+    course_type: 'operational-success-academy',
+    enrollment_type: 'course',
+  },
+});
+
 async function hasMetadataColumn() {
   const { error } = await supabase.from('products').select('metadata').limit(1);
   return !error;
