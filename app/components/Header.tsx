@@ -20,7 +20,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/states", label: "By State" },
-  // { href: "https://blogs.optimal-itsolutions.net/alflaunch", label: "Guides" },
+  { href: "https://carelicensingsolutions.com/blogs/", label: "Guides" },
   { href: "/course", label: "Course" },
   { href: "/about", label: "About" },
 ];
