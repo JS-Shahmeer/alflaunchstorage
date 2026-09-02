@@ -102,7 +102,7 @@ export default function GetStartedComponentThree({
       try {
         const stateName = stateNames[selectedState];
         // Fetch ALL products for this state (including individual bundles)
-        const response = await fetch(`/api/products?includeIndividual=true&state=${encodeURIComponent(stateName)}`);
+        const response = await fetch(`/api/products?includeIndividual=true&state=${encodeURIComponent(stateName)}&program=${encodeURIComponent(selectedType)}`);
         const data = await response.json();
         
         if (response.ok) {

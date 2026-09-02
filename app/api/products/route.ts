@@ -139,7 +139,7 @@ async function listStorageFilesForBundle(supabase: any, bundleSlug: string) {
   }
 }
 
-async function fetchProductsWithMetadata(supabase: any) {
+async function fetchProductsWithMetadata(supabase: any, includeFiles = false) {
   const selectFields = '*';
 
   const { data, error } = await supabase
@@ -173,7 +173,7 @@ async function fetchProductsWithMetadata(supabase: any) {
       : { ...derivedMetadata, ...explicitMetadata };
 
     // Hydrate files for complete bundles too
-    if (mergedMetadata.productLabel === 'Complete Bundle' && product.product_slug) {
+    if (includeFiles && mergedMetadata.productLabel === 'Complete Bundle' && product.product_slug) {
       const storageFiles = await listStorageFilesForBundle(supabase, product.product_slug);
       if (storageFiles.length > 0) {
         mergedMetadata.files = storageFiles;
@@ -190,7 +190,12 @@ async function fetchProductsWithMetadata(supabase: any) {
   return { data: products, error: null };
 }
 
-async function fetchIndividualBundlesForState(supabase: any, state: string) {
+async function fetchIndividualBundlesForState(
+  supabase: any,
+  state: string,
+  program?: string,
+  includeFiles = true,
+) {
   const normalizedState = state.trim();
   const matchedState = states.find(
     (s) => s.name.toLowerCase() === normalizedState.toLowerCase(),
@@ -204,6 +209,7 @@ async function fetchIndividualBundlesForState(supabase: any, state: string) {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
+  const normalizedProgram = program?.trim();
 
   const hydrateProductWithStorageFiles = async (product: any) => {
     const metadata = parseJsonField(product.metadata);
@@ -229,35 +235,66 @@ async function fetchIndividualBundlesForState(supabase: any, state: string) {
   };
 
   const queryBuilders = [
-    () => supabase.from('products').select('*').eq('is_active', true).eq('state', exactState),
-    () => supabase.from('products').select('*').eq('is_active', true).ilike('state', exactState),
+    () => {
+      let query = supabase.from('products').select('*').eq('is_active', true).eq('state', exactState);
+      return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+    },
+    () => {
+      let query = supabase.from('products').select('*').eq('is_active', true).ilike('state', exactState);
+      return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+    },
     ...(stateCode
       ? [
-          () => supabase.from('products').select('*').eq('is_active', true).eq('code', stateCode),
+          () => {
+            let query = supabase.from('products').select('*').eq('is_active', true).eq('code', stateCode);
+            return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+          },
         ]
       : []),
-    () => supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Individual Bundle`),
-    () => supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Complete Bundle`),
+    () => {
+      let query = supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Individual Bundle`);
+      return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+    },
+    () => {
+      let query = supabase.from('products').select('*').eq('is_active', true).ilike('name', `%${exactState}%Complete Bundle`);
+      return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+    },
     ...(stateSlug
       ? [
-          () => supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%individual-bundle%`),
-          () => supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%complete-bundle%`),
+          () => {
+            let query = supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%individual-bundle%`);
+            return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+          },
+          () => {
+            let query = supabase.from('products').select('*').eq('is_active', true).ilike('product_slug', `%${stateSlug}%complete-bundle%`);
+            return normalizedProgram ? query.eq('program', normalizedProgram) : query;
+          },
         ]
       : []),
   ];
 
   const combinedResults: Record<string, any> = {};
 
-  for (const builder of queryBuilders) {
-    const { data, error } = await builder();
+  const queryResults = await Promise.all(queryBuilders.map((builder) => builder()));
+
+  for (const { data, error } of queryResults) {
     if (error) {
       return { data: null, error };
     }
     if (data && data.length > 0) {
       for (const product of data) {
-        const hydrated = await hydrateProductWithStorageFiles(product);
-        if (hydrated) {
-          combinedResults[hydrated.id] = hydrated;
+        const metadata = parseJsonField(product.metadata);
+        const isMatchingCompleteBundle =
+          (product.product_label || metadata?.productLabel) === 'Complete Bundle' &&
+          (!normalizedProgram || (product.program || metadata?.program) === normalizedProgram);
+
+        if (includeFiles && isMatchingCompleteBundle) {
+          const hydrated = await hydrateProductWithStorageFiles(product);
+          if (hydrated) {
+            combinedResults[hydrated.id] = hydrated;
+          }
+        } else {
+          combinedResults[product.id] = product;
         }
       }
     }
@@ -310,13 +347,6 @@ async function fetchIndividualBundlesForState(supabase: any, state: string) {
         ? { ...derivedMetadata, ...normalizedMetadata, ...explicitMetadata }
         : { ...derivedMetadata, ...explicitMetadata };
 
-      if (mergedMetadata.productLabel === 'Complete Bundle' && product.product_slug) {
-        const storageFiles = await listStorageFilesForBundle(supabase, product.product_slug);
-        if (storageFiles.length > 0) {
-          mergedMetadata.files = storageFiles;
-        }
-      }
-
       return {
         ...product,
         metadata: mergedMetadata,
@@ -342,13 +372,23 @@ export async function GET(request: Request) {
   let result;
   if (includeIndividual && state) {
     // Fetch individual bundles for a specific state
-    result = await fetchIndividualBundlesForState(supabase, state);
+    result = await fetchIndividualBundlesForState(
+      supabase,
+      state,
+      url.searchParams.get('program') || undefined,
+      url.searchParams.get('includeFiles') !== 'false',
+    );
   } else if (!includeIndividual && state) {
     // Fetch complete bundles for a specific state
-    result = await fetchIndividualBundlesForState(supabase, state);
+    result = await fetchIndividualBundlesForState(
+      supabase,
+      state,
+      url.searchParams.get('program') || undefined,
+      url.searchParams.get('includeFiles') !== 'false',
+    );
   } else {
     // Fetch regular products (excluding individual bundles)
-    result = await fetchProductsWithMetadata(supabase);
+    result = await fetchProductsWithMetadata(supabase, false);
   }
 
   if (result.error) {

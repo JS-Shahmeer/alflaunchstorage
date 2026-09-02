@@ -57,7 +57,7 @@ export default function BundleModal({
     const fetchCompleteBundle = async () => {
       setLoadingBundle(true);
       try {
-        const response = await fetch(`/api/products?includeIndividual=false&state=${encodeURIComponent(state)}`);
+        const response = await fetch(`/api/products?includeIndividual=false&includeFiles=false&state=${encodeURIComponent(state)}&program=${encodeURIComponent(program)}`);
         const data = await response.json();
         
         if (response.ok && data.products) {

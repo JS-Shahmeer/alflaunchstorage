@@ -10,7 +10,7 @@ import DetailsModal from "./DetailsModal";
 import CompareModal from "./CompareModal";
 const BundleModal = dynamic(() => import("./BundleModal"), { ssr: false });
 import * as Select from "@radix-ui/react-select";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Loader, X } from "lucide-react";
 import { states, productTypes, programCategories, slugify } from "../data/shopData";
 import Image from "next/image";
 
@@ -362,7 +362,14 @@ export default function ShopMain() {
           {/* Top Bar */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-700 text-sm">
-              {loadingProducts ? "Loading Products..." : `Showing ${filteredProducts.length} of ${displayProducts.length} products`}
+              {loadingProducts ? (
+                <span className="flex items-center gap-2">
+                  <Loader size={16} className="animate-spin text-green-700" />
+                  Loading Products...
+                </span>
+              ) : (
+                `Showing ${filteredProducts.length} of ${displayProducts.length} products`
+              )}
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
               <input
@@ -440,9 +447,10 @@ export default function ShopMain() {
 
           {/* Product Cards */}
           {loadingProducts ? (
-            <p className="text-center text-green-700 text-lg py-10">
-              Loading Products...
-            </p>
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-green-700">
+              <Loader size={32} className="animate-spin" />
+              <p className="text-lg">Loading Products...</p>
+            </div>
           ) : filteredProducts.length === 0 ? (
             <p className="text-center text-green-700 text-lg py-10">
               No Product Found.
